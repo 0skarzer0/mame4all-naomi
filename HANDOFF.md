@@ -14,6 +14,22 @@ Documento de traspaso entre sesiones (personas o IAs). **Actualízalo en cada se
 - **Controles: perfectos en los dos** (volante, pedales, palanca, monedas). Validados en placa.
 - Freno + START = crédito: no confirmado explícitamente.
 
+### Sesión 2026-11-04 (noche)
+
+- Confirmado por el usuario: **sin el contador de FPS no hay cuelgues** (los dos juegos un buen rato).
+- Arreglo: el contador ya no escribe directamente en la textura (VRAM); se compone en RAM y se envía con
+  las store queues junto con la imagen (`naomi_video.cpp`, `ovl[]`, `build_overlay`). Probado en Flycast;
+  **pendiente de probar en placa**.
+- Profiler ampliado (`-DPROFILER_MAME4ALL`): la 2ª línea del contador muestra, en décimas de ms por frame
+  emulado: `total(0) 68K Z80 68Ksub sonido vídeo-juego subida+dibujo(por frame mostrado) salida-audio`.
+- Medido en Flycast (Hang-On, demo): 68K 1–2,4 ms, Z80 2,1–2,5, 68K sub 3,1, sonido 0,9–1,8,
+  vídeo del juego 4,7–6,6 ms por frame emulado (~10 ms por frame dibujado), subida+dibujo 1,7 ms.
+  **En Flycast ya iba al límite (100 % ocupado)**, no sobrado. CPU al 75 % casi no cambia nada
+  (los speed hacks ya ahorran la espera); sonido a 11025 Hz ahorra ~1 ms.
+- Añadido `-falign-*=32` (línea de caché del SH-4), como el build original de Dreamcast (`ALIGN=1`).
+- Entregadas builds de diagnóstico (profiler + contador activo al arrancar). **Siguiente paso:** foto del
+  contador en placa, en carrera, para ver qué parte se dispara frente a Flycast.
+
 ### Hipótesis (sin comprobar)
 
 1. **Causa común del port, no de cada juego:** dos drivers muy distintos se quedan en ~46–47 fps emulados.

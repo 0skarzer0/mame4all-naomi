@@ -30,6 +30,11 @@ DEFS = -DDREAMCAST -DNAOMI -DNAOMI_GAME=$(GAME) -DNAOMI_FPS_DEFAULT=$(FPS) -DNO_
 INCS = -Isrc/naomi/shim -Isrc -Isrc/sdl -Isrc/z80
 
 OPT = -O3 -fomit-frame-pointer -ffast-math -fno-strict-aliasing -fno-common
+# 32-byte alignment (the SH-4 cache line), as the Dreamcast build had
+ALIGN ?= 1
+ifeq ($(ALIGN),1)
+OPT += -falign-functions=32 -falign-loops=32 -falign-labels=32 -falign-jumps=32
+endif
 WARN = -w -fpermissive
 
 KOS_CFLAGS += $(OPT) $(WARN) $(DEFS) $(EXTRA) $(INCS)

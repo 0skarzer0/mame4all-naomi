@@ -14,6 +14,7 @@
 #include "driver.h"
 #include "minimal.h"
 #include "naomi.h"
+#include "prof.h"
 
 extern int sound_slice;
 extern int sound_real_sample_rate;
@@ -104,6 +105,7 @@ void gp2x_sound_play(void *buff, int len)
 	closing_sound = 0;
 	if (stream == SND_STREAM_INVALID)
 		return;
+	mame4all_prof_start(9);
 	unsigned wr = ring_wr;
 	for (int i = 0; i < n; i++)
 		ring[(wr + i) & RING_MASK] = s[i];
@@ -111,6 +113,7 @@ void gp2x_sound_play(void *buff, int len)
 	if (ring_wr - ring_rd > RING_HIGH)
 		ring_rd = ring_wr - 1536;
 	snd_stream_poll(stream);
+	mame4all_prof_end(9);
 }
 
 void osd_stop_music(void) { }

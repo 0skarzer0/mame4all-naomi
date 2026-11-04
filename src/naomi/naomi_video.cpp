@@ -12,6 +12,8 @@
 #include "minimal.h"
 #include "naomi.h"
 #include <stdio.h>
+#include <string.h>
+#include "prof.h"
 
 #ifndef NAOMI_FPS_DEFAULT
 #define NAOMI_FPS_DEFAULT 0
@@ -45,6 +47,15 @@ void naomi_video_init(void)
 	video_up = 1;
 }
 
+/* Frame rate overlay, composed in main RAM and sent with the picture by
+   the store queues: nothing writes the texture directly (direct CPU stores
+   into video RAM hung the real board after a while). */
+#define OVL_ROWS 26
+static uint16_t ovl[OVL_ROWS][TEX_W] __attribute__((aligned(32)));
+static int ovl_len[OVL_ROWS];   /* overlay pixels at the start of each row */
+static int ovl_on = 0;
+static uint16_t row_buf[TEX_W] __attribute__((aligned(32)));
+
 static void upload(uint16_t *dst, const unsigned char *src, int pitch, int width, int height)
 {
 	const short *pal = gp2x_sdlwrapper_palette;
@@ -52,6 +63,21 @@ static void upload(uint16_t *dst, const unsigned char *src, int pitch, int width
 	const int skip = (TEX_W - width) >> 1;   /* in 32-bit words */
 	for (int y = 0; y < height; y++) {
 		const unsigned char *s = src + y * pitch;
+		if (ovl_on && y < OVL_ROWS && ovl_len[y]) {
+			int n = ovl_len[y] < width ? ovl_len[y] : width;
+			for (int x = 0; x < width; x++)
+				row_buf[x] = x < n ? ovl[y][x] : (uint16_t)pal[s[x]];
+			const uint32_t *r = (const uint32_t *)row_buf;
+			for (int x = 0; x < width; x += 16) {
+				for (int k = 0; k < 8; k++)
+					d[k] = r[k];
+				sq_flush(d);
+				d += 8;
+				r += 8;
+			}
+			d += skip;
+			continue;
+		}
 		for (int x = 0; x < width; x += 16) {
 			__asm__("pref @%0" : : "r"(s + 32));
 			for (int k = 0; k < 8; k++) {
@@ -106,6 +132,7 @@ void naomi_present(const unsigned char *src, int pitch, int width, int height)
 	if (height > TEX_H) height = TEX_H;
 	if (width <= 0 || height <= 0)
 		return;
+	ovl_on = 0;
 	upload((uint16_t *)tex[cur], src, pitch, width, height);
 	draw(width, height);
 }
@@ -122,22 +149,27 @@ static const unsigned char digits3x5[17][5] = {
 	{2,5,7,5,5},{6,5,6,5,6},{7,4,4,4,7},{6,5,5,5,6},{7,4,6,4,7},{7,4,6,4,4} /* A-F */
 };
 
-static void overlay_text(uint16_t *t, int row, const char *txt)
+static void overlay_text(int row, const char *txt)
 {
-	/* each font pixel 2x2 texels, white on black */
+	/* each font pixel 2x2 texels, white on black, rows row*12+2 .. +13 */
 	int x0 = 2;
-	t += row * 12 * TEX_W;
-	for (const char *c = txt; *c; c++) {
+	for (const char *c = txt; *c && x0 + 8 <= TEX_W; c++) {
 		int g = (*c == '/') ? 10 : (*c >= '0' && *c <= '9') ? *c - '0' :
 		        (*c >= 'A' && *c <= 'F') ? *c - 'A' + 11 : -1;
-		for (int y = 0; y < 12; y++)
+		for (int y = 0; y < 12; y++) {
+			int ty = row * 12 + y + 2;
+			if (ty >= OVL_ROWS)
+				break;
 			for (int x = 0; x < 8; x++) {
 				int on = 0;
 				int fy = (y - 1) / 2, fx = (x - 1) / 2;
 				if (g >= 0 && y >= 1 && y < 11 && x >= 1 && x < 7)
 					on = (digits3x5[g][fy] >> (2 - fx)) & 1;
-				t[(y + 2) * TEX_W + x0 + x] = on ? 0xffff : 0x0000;
+				ovl[ty][x0 + x] = on ? 0xffff : 0x0000;
 			}
+			if (ovl_len[ty] < x0 + 8)
+				ovl_len[ty] = x0 + 8;
+		}
 		x0 += 8;
 	}
 }
@@ -147,13 +179,28 @@ static uint64_t stats_from = 0;
 static char fps_text[16] = "";
 static char prof_text[48] = "";
 
+static void build_overlay(void)
+{
+	ovl_on = naomi_show_fps && fps_text[0];
+	if (!ovl_on)
+		return;
+	memset(ovl_len, 0, sizeof(ovl_len));
+	overlay_text(0, fps_text);
+#ifdef PROFILER_MAME4ALL
+	overlay_text(1, prof_text);
+#else
+	char dbg[48];
+	naomi_input_debug(dbg);
+	overlay_text(1, dbg);
+#endif
+}
+
 static void update_display_naomi(void)
 {
 	const int pitch = (int)(scrbitmap->line[1] - scrbitmap->line[0]);
 	int width = gp2x_width & ~15, height = gp2x_height;
 	if (width > TEX_W) width = TEX_W;
 	if (height > TEX_H) height = TEX_H;
-	upload((uint16_t *)tex[cur], scrbitmap->line[gp2x_yoffset] + gp2x_xoffset, pitch, width, height);
 
 	frames_shown++;
 	uint64_t now = timer_ms_gettime64();
@@ -162,12 +209,14 @@ static void update_display_naomi(void)
 	else if (now - stats_from >= 1000) {
 		unsigned emu = mame4all_totalframes - last_total;
 #ifdef PROFILER_MAME4ALL
-		/* tenths of a ms per emulated frame: all, 68K main, Z80, 68K sub, sound, video */
+		/* tenths of a ms per emulated frame: all, 68K main, Z80, 68K sub,
+		   sound, game video, our upload+draw (per frame shown), sound out */
 		{
-			static const int slot[6] = { 0, 2, 3, 4, 6, 7 };
+			static const int slot[8] = { 0, 2, 3, 4, 6, 7, 8, 9 };
 			char *p = prof_text;
-			for (int i = 0; i < 6; i++) {
-				unsigned v = emu ? (unsigned)(mame4all_prof_sum[slot[i]] / (emu * 100)) : 0;
+			for (int i = 0; i < 8; i++) {
+				unsigned div = (slot[i] == 8) ? frames_shown : emu;
+				unsigned v = div ? (unsigned)(mame4all_prof_sum[slot[i]] / (div * 100)) : 0;
 				p += sprintf(p, "%u ", v);
 			}
 			for (int i = 0; i < MAME4ALL_PROFILER_MAX; i++)
@@ -181,17 +230,11 @@ static void update_display_naomi(void)
 		frames_shown = 0;
 		stats_from = now;
 	}
-	if (naomi_show_fps && fps_text[0]) {
-		overlay_text((uint16_t *)tex[cur], 0, fps_text);
-		char dbg[48];
-#ifdef PROFILER_MAME4ALL
-		overlay_text((uint16_t *)tex[cur], 1, prof_text);
-#else
-		naomi_input_debug(dbg);
-		overlay_text((uint16_t *)tex[cur], 1, dbg);
-#endif
-	}
+	build_overlay();
 
+	mame4all_prof_start(8);
+	upload((uint16_t *)tex[cur], scrbitmap->line[gp2x_yoffset] + gp2x_xoffset, pitch, width, height);
+	mame4all_prof_end(8);
 	draw(width, height);
 }
 
