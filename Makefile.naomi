@@ -1,0 +1,126 @@
+# MAME4ALL for SEGA NAOMI (KallistiOS, KOS_SUBARCH=naomi), one game per
+# build. Only the System 16 driver is compiled, with the Dreamcast build's
+# CPU cores (FAME 68000 and FAZE Z80, both SH-4 assembly).
+#
+#   source /opt/toolchains/dc/kos/environ.sh
+#   make -f Makefile.naomi GAME=hangon
+#
+# The game's ROM zip goes in naomi/romdisk/roms/ (never committed).
+
+GAME ?= hangon
+FPS ?= 0
+# 68000: FAME/C (the SH-4 assembly FAME core broke Hang-On's race: no speed)
+FAMEC ?= 1
+TARGET = mame4all_$(GAME)
+
+DEFS = -DDREAMCAST -DNAOMI -DNAOMI_GAME=$(GAME) -DNAOMI_FPS_DEFAULT=$(FPS) -DNO_FASTMEM -DNO_SPLASH \
+	-DLSB_FIRST -DSIGNED_SAMPLES -DACORN -DINLINE=STATIC_INLINE_DREAMCAST \
+	-DGP2X_SDLWRAPPER_NODOUBLEBUFFER -DNO_Z80_BIG_FLAGS_ARRAY -DUSE_CPLUS \
+	-DMAME4ALL_CLASSIC -DMAME4ALL_CPU_CLOCK=90 \
+	-DUSE_Z80_GP -DUSE_RAZE -DUSE_M68000_GP -DUSE_FAME \
+	-DUSE_YM2151_GP -DUSE_MSM5205_GP -DUSE_AY8910_GP -DUSE_YM2XXX_GP \
+	-DUSE_SEGAPCM_GP -DUSE_RF5C68_GP \
+	-DNO_DRIVER_ATARI -DNO_DRIVER_ATARISY1 -DNO_DRIVER_ATARIVG -DNO_DRIVER_CAPCOM \
+	-DNO_DRIVER_CENTIPEDE -DNO_DRIVER_CPS1 -DNO_DRIVER_DEC0 -DNO_DRIVER_GENERIC_8BIT \
+	-DNO_DRIVER_MCR -DNO_DRIVER_NEOGEO -DNO_DRIVER_NICHIBUT \
+	-DNO_DRIVER_OTHER -DNO_DRIVER_SEIBU -DNO_DRIVER_TAITO2 -DNO_DRIVER_TECHNOS \
+	-DNO_DRIVER_TEHKAN -DNO_DRIVER_TMNT -DNO_DRIVER_TMS $(GAME_DEFS) \
+	-DMITSHM -DUNZIP_SUPPORT -DZLIB -DHAVE_MKSTEMP -DACCEPT_SIZE_T=int
+
+INCS = -Isrc/naomi/shim -Isrc -Isrc/sdl -Isrc/z80
+
+OPT = -O3 -fomit-frame-pointer -ffast-math -fno-strict-aliasing -fno-common
+WARN = -w -fpermissive
+
+KOS_CFLAGS += $(OPT) $(WARN) $(DEFS) $(EXTRA) $(INCS)
+KOS_CPPFLAGS += -std=gnu++11 -fno-operator-names -fno-exceptions -fno-rtti
+
+OBJS_CORE = \
+	src/mame.o src/common.o src/cpuintrf.o src/memory.o src/timer.o \
+	src/palette.o src/inptport.o src/unzip.o src/inflate.o src/tilemap.o \
+	src/sprite.o \
+	src/sndhrdw/streams.o src/sndhrdw/generic.o src/sndhrdw/samples.o \
+	src/sndhrdw/dac.o src/sndhrdw/sn76496.o src/vidhrdw/generic.o \
+	src/sndhrdw/adpcm.o src/sndhrdw/msm5205i.o \
+	src/sndhrdw/fm.o src/sndhrdw/2151intf.o src/sndhrdw/ym2151.o src/sndhrdw/ym3812.o \
+	src/sndhrdw/3812intf.o \
+	src/sndhrdw/ay8910.o \
+	src/sndhrdw/psgintf.o src/sndhrdw/2610intf.o src/sndhrdw/2612intf.o src/sndhrdw/ym2413.o \
+	src/sndhrdw/upd7759.o src/sndhrdw/pokey.o src/sndhrdw/tms5220.o src/sndhrdw/5220intf.o \
+	src/sndhrdw/vlm5030.o src/sndhrdw/nes.o src/sndhrdw/nesintf.o src/sndhrdw/astrocde.o \
+	src/sndhrdw/votrax.o src/sndhrdw/namco.o src/sndhrdw/namcos1.o src/sndhrdw/k007232.o \
+	src/sndhrdw/irem.o src/sndhrdw/segapcm.o src/sndhrdw/rf5c68.o
+
+# The game's driver (each game: its driver files and the NO_DRIVER_ flag
+# of the drivers left out)
+ifeq ($(GAME),hangon)
+OBJS_DRIVER = \
+	src/machine/system16.o src/vidhrdw/system16.o src/sndhrdw/system16.o \
+	src/drivers/system16.o
+GAME_DEFS = -DNO_DRIVER_NEMESIS
+endif
+ifeq ($(GAME),konamigt)
+OBJS_DRIVER = src/vidhrdw/nemesis.o src/drivers/nemesis.o
+GAME_DEFS = -DNO_DRIVER_SYSTEM16
+endif
+ifndef OBJS_DRIVER
+$(error unknown GAME $(GAME))
+endif
+
+ifeq ($(FAMEC),1)
+M68K_CORE = src/fame/famec.o
+DEFS += -DFAME_IS_FAMEC
+else
+M68K_CORE = src/fame/fame.o
+endif
+
+OBJS_CPU = \
+	$(M68K_CORE) src/fame/musashi.o src/fame/m68000.o \
+	src/raze/faze/raze_1.o src/raze/faze/raze_2.o src/raze/faze/raze_3.o \
+	src/raze/faze/raze_4.o src/raze/mamez80/z80.o src/raze/z80intrf.o
+
+OBJS_OSD = \
+	src/sdl/video.o src/sdl/sound.o src/sdl/fileio.o \
+	src/naomi/naomi_main.o src/naomi/naomi_system.o src/naomi/naomi_video.o \
+	src/naomi/naomi_audio.o src/naomi/naomi_input.o src/naomi/naomi_drivers.o
+
+OBJS = $(OBJS_CORE) $(OBJS_DRIVER) $(OBJS_CPU) $(OBJS_OSD)
+
+KOS_ROMDISK_DIR = naomi/romdisk
+
+all: $(TARGET).bin
+
+include $(KOS_BASE)/Makefile.rules
+
+FAZE_OPTS = -DAUTODOWN_IRQS -DUSE_MAME_FETCH -DMAME_CLOCK_FLUSHING -DEMULATE_UNDOC_FLAGS \
+	-DEMULATE_R_REGISTER -DNO_EXTRA_CYCLES -DNO_PC_LIMIT -DMAME_SET_PC
+
+src/raze/faze/raze.s: src/raze/faze/raze.s.m4
+	m4 $(FAZE_OPTS) -Isrc/raze/faze/ $< > $@
+
+RAZE_SYMS = z80_set_reti z80_set_out z80_set_in z80_add_write z80_add_read z80_map_write \
+	z80_map_read z80_map_fetch z80_end_memmap z80_init_memmap z80_set_reg z80_get_reg \
+	z80_do_wait_states z80_skip_idle z80_stop_emulating z80_get_cycles_elapsed \
+	z80_get_context z80_emulate z80_set_fetch_callback z80_reset z80_raise_IRQ \
+	z80_lower_IRQ z80_cause_NMI z80_set_context
+
+src/raze/faze/raze_%.s: src/raze/faze/raze.s
+	sed $(foreach s,$(RAZE_SYMS),-e "s/$(s)/$(s)_$*/g") $< > $@
+
+src/raze/faze/raze_%.o: src/raze/faze/raze_%.s
+	$(KOS_AS) --little -o $@ $<
+
+src/fame/fame.o: src/fame/fame.s
+	$(KOS_AS) --little -o $@ $<
+
+$(TARGET).elf: $(OBJS) romdisk.o
+	$(KOS_CC) $(KOS_CFLAGS) $(KOS_LDFLAGS) -o $@ $(KOS_START) $(OBJS) romdisk.o -lm $(KOS_LIBS)
+
+$(TARGET).bin: $(TARGET).elf
+	$(KOS_OBJCOPY) -R .stack -O binary $< $@
+
+clean:
+	rm -f $(OBJS) $(TARGET).elf $(TARGET).bin romdisk.o romdisk.img \
+		src/raze/faze/raze.s src/raze/faze/raze_?.s
+
+.PHONY: all clean
