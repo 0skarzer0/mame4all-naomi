@@ -30,6 +30,46 @@ Documento de traspaso entre sesiones (personas o IAs). **Actualízalo en cada se
 - Entregadas builds de diagnóstico (profiler + contador activo al arrancar). **Siguiente paso:** foto del
   contador en placa, en carrera, para ver qué parte se dispara frente a Flycast.
 
+### Sesión 2026-11-05 (madrugada): números de la placa real
+
+Confirmado en placa: el contador compuesto en RAM **ya no cuelga**. Profiler en placa (décimas de ms por
+frame emulado; subida+dibujo por frame mostrado):
+
+| | 68K principal | Z80 | 68K sub | sonido | vídeo juego | subida+dibujo | fps emulados/mostrados |
+|---|---|---|---|---|---|---|---|
+| Hang-On carrera (placa) | **7,9** | 5,0 | 5,7 | 2,0 | 2,4 (≈10 por frame dibujado) | 3,1 | 42/10 |
+| Hang-On carrera (Flycast) | 2,2–2,7 | 2,1–2,6 | 3,1 | 1,2–1,9 | ≈10 por dibujado | 1,7 | 60 |
+| Konami GT carrera (placa) | **9,2–9,5** | 4,0 | — | 1,3 | 4,0 | 2,4 | 50–54/14 |
+| Konami GT carrera (Flycast) | 3,2–3,4 | 2,9–3,0 | — | 0,7–0,8 | — | 1,3 | — |
+
+**Conclusión:** el dibujo cuesta lo mismo en placa y en Flycast; **los núcleos de CPU van 2–3,5× más lentos
+en el SH-4 real** (FAMEC el peor: 3,3×; RAZE Z80 2,3×; Musashi 1,8×). Flycast no sirve para predecir la
+velocidad de los núcleos de CPU.
+
+Probado en Flycast, sin resultado útil:
+- CPU al 63 % (la placa original lleva los 68000 a 6,25 MHz, MAME 0.35 a 10 MHz): no baja el tiempo del 68K
+  principal (su trabajo por frame es fijo; el resto del tiempo ya lo salta el speed hack). Nota: un slice que
+  termina por `spinuntil` cuenta como "ran" completo, así que "ran 100 %" no significa que no haya espera.
+- Musashi para los dos 68000 (`NAOMI_ALL_MUSASHI`): 1,7× más lento que FAMEC en Flycast.
+- FAME en ensamblador SH-4 (`FAMEC=0`): ~20 % más rápido que FAMEC en Flycast, **pero roto en los dos juegos**
+  (velocidad 0 km/h: no lee el acelerador; en Konami GT, además, imagen corrupta). En placa real podría ser
+  mucho más rápido que FAMEC: **arreglarlo es la vía más prometedora**.
+- Sonido a 11025 Hz: ahorra ~0,4–1 ms.
+
+Herramienta nueva `-DNAOMI_PCHIST`: filas 3-4 del contador = PCs donde terminan los slices de CPU 0 y 1
+(top 3, % de slices) y % de ciclos ejecutados. Ojo: no está ponderado por tiempo; los NMI de sonido acortan
+slices y sesgan el histograma.
+- Hang-On, 68K principal: `0x3E9C` (justo tras escribir comandos de sonido en `0xE00000`, con bucles de
+  retardo `dbra`). Z80: repartido por `0x1BD-0x1EB`.
+- Konami GT, Z80: `0x08-0x0E` = rutina RST 08 (escritura/lectura del AY8910); cada escritura al AY
+  provoca una actualización del stream de sonido → parte del coste del Z80 es generar audio.
+
+**Siguientes pasos propuestos:**
+1. Depurar FAME asm (por qué no lee el acelerador / handlers de lectura) y medirlo en placa.
+2. Konami GT: le faltan ~2,6 ms por frame para 60. Candidatos: FAME asm, agrupar las escrituras al AY,
+   sonido a 11 kHz.
+3. Hang-On: le faltan ~8 ms; necesita los dos 68000 más rápidos.
+
 ### Hipótesis (sin comprobar)
 
 1. **Causa común del port, no de cada juego:** dos drivers muy distintos se quedan en ~46–47 fps emulados.

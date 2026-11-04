@@ -50,7 +50,7 @@ void naomi_video_init(void)
 /* Frame rate overlay, composed in main RAM and sent with the picture by
    the store queues: nothing writes the texture directly (direct CPU stores
    into video RAM hung the real board after a while). */
-#define OVL_ROWS 26
+#define OVL_ROWS 50
 static uint16_t ovl[OVL_ROWS][TEX_W] __attribute__((aligned(32)));
 static int ovl_len[OVL_ROWS];   /* overlay pixels at the start of each row */
 static int ovl_on = 0;
@@ -192,6 +192,12 @@ static void build_overlay(void)
 	char dbg[48];
 	naomi_input_debug(dbg);
 	overlay_text(1, dbg);
+#endif
+#ifdef NAOMI_PCHIST
+	extern char naomi_pch_text[3][64];
+	for (int i = 0; i < 2; i++)
+		if (naomi_pch_text[i][0])
+			overlay_text(2 + i, naomi_pch_text[i]);
 #endif
 }
 

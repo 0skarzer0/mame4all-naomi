@@ -61,6 +61,9 @@ int main(int argc, char **argv)
 		for (;;) thd_sleep(1000);
 	}
 
+#ifdef NAOMI_PCHIST
+	dbgio_dev_select("scif");
+#endif
 	memset(&options, 0, sizeof(options));
 	options.frameskip = -1;          /* automatic (video.cpp, NAOMI) */
 	options.samplerate = 22050;

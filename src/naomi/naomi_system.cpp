@@ -93,3 +93,41 @@ void mame4all_prof_add(char *msg) { (void)msg; }
 void mame4all_prof_show(void) { }
 void mame4all_prof_setmsg(int n, char *msg) { (void)n; (void)msg; }
 #endif
+
+#ifdef NAOMI_PCHIST
+/* Debug: where each CPU is when its time slice ends (top 3 PCs, % of its
+   slices) and the % of the asked cycles it really ran (spin hacks end a
+   slice early). Refreshed every 600 slices of CPU 0, shown by naomi_video. */
+#include <stdio.h>
+#define PCH 64
+char naomi_pch_text[3][64];
+static unsigned pch_pc[3][PCH], pch_n[3][PCH];
+static unsigned long long pch_asked[3], pch_ran[3];
+static unsigned pch_slices[3];
+void naomi_pchist(int cpu, unsigned pc, int asked, int ran)
+{
+	if (cpu > 2) return;
+	pch_asked[cpu] += asked; pch_ran[cpu] += ran; pch_slices[cpu]++;
+	for (int i = 0; i < PCH; i++) {
+		if (pch_n[cpu][i] && pch_pc[cpu][i] == pc) { pch_n[cpu][i]++; break; }
+		if (!pch_n[cpu][i]) { pch_pc[cpu][i] = pc; pch_n[cpu][i] = 1; break; }
+	}
+	if (cpu == 0 && pch_slices[0] % 600 == 0) {
+		for (int c = 0; c < 3; c++) {
+			char *p = naomi_pch_text[c];
+			p[0] = 0;
+			if (!pch_slices[c]) continue;
+			for (int k = 0; k < 3; k++) {
+				int b = -1; unsigned bn = 0;
+				for (int j = 0; j < PCH; j++) if (pch_n[c][j] > bn) { bn = pch_n[c][j]; b = j; }
+				if (b < 0) break;
+				p += sprintf(p, "%X %u ", pch_pc[c][b] & 0xffffff, bn * 100 / pch_slices[c]);
+				pch_n[c][b] = 0;
+			}
+			sprintf(p, "/ %u", pch_asked[c] ? (unsigned)(pch_ran[c] * 100 / pch_asked[c]) : 0);
+			for (int j = 0; j < PCH; j++) pch_n[c][j] = 0;
+			pch_asked[c] = pch_ran[c] = 0; pch_slices[c] = 0;
+		}
+	}
+}
+#endif

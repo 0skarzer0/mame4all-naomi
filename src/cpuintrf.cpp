@@ -650,6 +650,12 @@ reset:
 
 			/* update based on how many cycles we really ran */
 			cpu[activecpu].totalcycles += ran;
+#ifdef NAOMI_PCHIST
+			{
+				extern void naomi_pchist(int cpu, unsigned pc, int asked, int ran);
+				naomi_pchist(activecpu, GETPC(activecpu), running, ran);
+			}
+#endif
 
 			/* update the contexts */
 			if (cpu[activecpu].save_context) GETREGS (activecpu, cpu[activecpu].context);
