@@ -2,11 +2,28 @@
 
 Documento de traspaso entre sesiones (personas o IAs). **Actualízalo en cada sesión.**
 
-## Estado (2026-11-04)
+## Estado (2026-11-04, primera prueba en placa real)
 
-- Hang-On y Konami GT funcionan en Flycast (vídeo, audio, controles, monedas).
-- **Pendiente:** prueba en placa real de las builds con el arreglo de VRAM y con freno + START = crédito.
-- Freno + START no se ha probado aún en Flycast.
+**En placa real (NAOMI 2, mueble Crazy Taxi) los dos juegos van lentos y se cuelgan; en Flycast iban a 60.**
+
+| Juego | Overlay en placa | En Flycast | Observado |
+|---|---|---|---|
+| Hang-On | `47/16 100` (47 emulados, 16 mostrados, 100 % ocupado) | 60 / 41–55 | Muy poco framerate; se cuelga en la etapa 1 y no continúa |
+| Konami GT | `46/13 100` | 60 / 60 | Sonido malísimo; se cuelga poco después de activar el contador de FPS |
+
+- **Controles: perfectos en los dos** (volante, pedales, palanca, monedas). Validados en placa.
+- Freno + START = crédito: no confirmado explícitamente.
+
+### Hipótesis (sin comprobar)
+
+1. **Causa común del port, no de cada juego:** dos drivers muy distintos se quedan en ~46–47 fps emulados.
+   Flycast no reproduce el coste real de caché y memoria del SH-4. Candidatos: subida de textura por
+   store queues, conversión de paleta, mezcla de audio, memoria sin caché o copias de bitmap.
+   Primer paso: medir en placa con el profiler (`PROFILER_MAME4ALL`) qué parte se come el frame.
+2. **Sonido malo = consecuencia de (1):** el audio espera 60 fps emulados; a ~46 se vacía el buffer.
+3. **Cuelgues posiblemente ligados al overlay de FPS:** en ambas pruebas estaba activo. Sospecha:
+   escrituras de byte en VRAM al dibujarlo (la VRAM real no las admite; ver arreglo de unzip/ROMs).
+   Prueba: partida larga sin activar el overlay; revisar `naomi_video.cpp` (dibujo del overlay).
 
 ## Hardware objetivo
 
@@ -79,7 +96,7 @@ de 60, así que el audio va bien.
 
 ## Siguientes pasos
 
-1. Probar en placa real Hang-On y Konami GT (incluido freno + START).
+1. Diagnosticar la lentitud en placa (profiler) y los cuelgues (overlay de FPS / escrituras de byte en VRAM).
 2. Añadir Super Hang-On y Enduro Racer (mismo hardware System 16, poco trabajo).
 3. Spy Hunter / Max RPM (MCR3), Turbo, Sprint 2, Super Sprint, Arkanoid (volante → velocidad de spinner).
 4. Ficha por juego en `docs/games/`.

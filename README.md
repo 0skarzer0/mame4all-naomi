@@ -11,8 +11,8 @@ Cada juego se compila como un `.bin` independiente que arranca directamente en e
 
 | Juego | Driver | Estado | Rendimiento (Flycast) | Notas |
 |---|---|---|---|---|
-| Hang-On | `hangon` | 🧪 Flycast OK, pendiente en placa real | 60 emulados / 41–55 mostrados en carrera | Manillar y acelerador analógicos |
-| Konami GT | `konamigt` | 🧪 Flycast OK, pendiente en placa real | 60 fps | Volante, acelerador, freno y marcha LOW/HIGH (palanca) |
+| Hang-On | `hangon` | ⚠️ Placa real: 47 fps emulados / 16 mostrados, cuelgues; controles OK | 60 emulados / 41–55 mostrados en carrera | Manillar y acelerador analógicos |
+| Konami GT | `konamigt` | ⚠️ Placa real: 46/13, sonido malo, cuelgues; controles OK | 60 fps | Volante, acelerador, freno y marcha LOW/HIGH (palanca) |
 
 Próximos candidatos (MAME 0.35): Super Hang-On (`shangonb`), Enduro Racer (`endurobl`), Spy Hunter,
 Max RPM, Turbo, Sprint 2, Super Sprint, Arkanoid.
