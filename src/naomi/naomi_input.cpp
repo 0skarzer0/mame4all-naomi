@@ -3,6 +3,8 @@
    two-way shifter, START), and usable with a stick cabinet:
 
      START                 1 player start
+     brake held + START    a credit, in every game (START is not passed on
+                           to the game until it is released)
      coin chutes, SERVICE  coin (SERVICE gives a credit without a coin)
      TEST                  the game's service/test mode switch
      wheel                 analog steering (AD stick X, paddle, dial)
@@ -46,6 +48,8 @@ static int naomi_analog2(int, int, int, int, int, int, int *);
 static int coins_pending = 0;
 static int gear_high = 0;
 static uint16_t coin_count[MIE_JVS_COIN_SLOTS];
+static int start_held = 0;    /* START was down on the last poll */
+static int start_coin = 0;    /* this START press gave a credit: hide it */
 
 static int steer_of(int raw)
 {
@@ -158,6 +162,23 @@ void naomi_input_poll(void)
 	if (service && !service_held)
 		coins_pending++;
 	service_held = service;
+
+	/* brake held + START: a credit. That START press is kept from the
+	   game until it is released, so it does not also start a race. */
+	int start = jvs.p1.start;
+	if (start && !start_held && brake > 128) {
+		coins_pending++;
+		start_coin = 1;
+	}
+	if (!start)
+		start_coin = 0;
+	start_held = start;
+}
+
+/* START as the game sees it */
+static int p1_start(void)
+{
+	return have_jvs && jvs.p1.start && !start_coin;
 }
 
 static int test_pressed(void)
@@ -171,7 +192,7 @@ unsigned long naomi_pad(int njoy)
 	if (!have_jvs)
 		return 0;
 	const mie_jvs_player_sw_t &p = njoy <= 1 ? jvs.p1 : jvs.p2;
-	if (p.start) k |= GP2X_START;
+	if (njoy <= 1 ? p1_start() : p.start) k |= GP2X_START;
 	if (p.up) k |= GP2X_UP;
 	if (p.down) k |= GP2X_DOWN;
 	if (p.left) k |= GP2X_LEFT;
@@ -220,7 +241,7 @@ void osd_poll_joystick(void)
 	{
 		extern int naomi_show_fps;
 		static int start_frames = 0;
-		if (have_jvs && jvs.p1.start) {
+		if (p1_start()) {
 			if (++start_frames == 180)
 				naomi_show_fps = !naomi_show_fps;
 		} else
@@ -240,7 +261,7 @@ int osd_key_pressed(int keycode)
 	if (!have_jvs)
 		return 0;
 	switch (keycode) {
-	case OSD_KEY_1: return jvs.p1.start;
+	case OSD_KEY_1: return p1_start();
 	case OSD_KEY_2: return jvs.p2.start;
 	case OSD_KEY_3: return coin_frames > 10;
 	case OSD_KEY_F2: return test_pressed();

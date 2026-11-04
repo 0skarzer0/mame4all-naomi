@@ -11,3 +11,4 @@ naomi/roms/
 .naomi_last
 src/z80/raze_*.s
 src/z80/raze_*.asm
+src/raze/faze/raze_*.s
