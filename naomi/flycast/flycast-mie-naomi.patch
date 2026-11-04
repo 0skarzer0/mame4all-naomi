@@ -1,0 +1,57 @@
+diff --git a/core/hw/holly/sb.cpp b/core/hw/holly/sb.cpp
+index 45c0ad6..fef9c87 100644
+--- a/core/hw/holly/sb.cpp
++++ b/core/hw/holly/sb.cpp
+@@ -663,6 +663,8 @@ void sb_Reset(bool hard)
+ 		SB_SBREV = 0xB;
+ 		SB_G2ID = 0x12;
+ 		SB_G1SYSM = ((0 << 4) | 1);
++		if (settings.platform.isNaomi() && getenv("FC_MIE_NODEVINFO"))	// (local test patch) NAOMI system mode, as KOS reads it
++			SB_G1SYSM = ((0xa << 4) | 1);
+ 		SB_TFREM = 8;
+ 		SB_PDAPRO = 0x7f00;
+ 		SB_GDAPRO = 0x7f00;
+diff --git a/core/hw/maple/maple_jvs.cpp b/core/hw/maple/maple_jvs.cpp
+index d01240f..74ab305 100644
+--- a/core/hw/maple/maple_jvs.cpp
++++ b/core/hw/maple/maple_jvs.cpp
+@@ -1304,6 +1304,14 @@ u32 BaseMIE::RawDma(const u32 *buffer_in, u32 buffer_in_len, u32 *buffer_out)
+ 
+ 	const u32 cmd = *(u8*)buffer_in;
+ 
++	if (cmd == MDC_DeviceRequest && getenv("FC_MIE_NODEVINFO"))
++	{
++		// (local test patch) no answer to the Dreamcast device info request, as
++		// KOS expects of the real MIE: it then probes the JVS bridge (0x82)
++		buffer_out[0] = 0xFFFFFFFF;
++		return 4;
++	}
++
+ 	// delegate to subclass first
+ 	dma_buffer_out += 4;
+ 	u32 resp = dma(cmd);
+@@ -1385,6 +1393,13 @@ u32 BaseMIE::RawDma(const u32 *buffer_in, u32 buffer_in_len, u32 *buffer_out)
+ 		{
+ 			DEBUG_LOG(JVS, "bus[%d] JVS Get Id", bus_id);
+ 			static const char ID[56] = "315-6149    COPYRIGHT SEGA ENTERPRISES CO,LTD.  1998";
++			if (getenv("FC_MIE_NODEVINFO"))
++			{
++				// (local test patch) one reply frame, as KOS's MIE driver expects
++				reply(MDRS_JVSGetIdReply, 12);
++				wptr(ID, 48);
++				break;
++			}
+ 			reply(MDRS_JVSGetIdReply, 7);
+ 			wptr(ID, 28);
+ 
+@@ -2061,6 +2076,10 @@ u16 jvs_io_board::read_analog_axis(int player_num, int player_axis, bool inverte
+ 		v = mapleInputState[player_num].fullAxes[player_axis] + 0x8000;
+ 	else
+ 		v = 0x8000;
++	if (getenv("FC_PEDALS") && player_num == 0) {	// (local test patch) pedals idle at 0, K = full throttle
++		if (player_axis == 1) v = mapleInputState[0].fullAxes[1] > 0 ? 0xffff : 0x2000;
++		else if (player_axis == 2) v = 0x2000;
++	}
+ 	return inverted ? 0xffff - v : v;
+ }
+ 
