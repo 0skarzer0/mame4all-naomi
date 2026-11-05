@@ -46,7 +46,7 @@ static int coin_seen = 0;
 static int last_v[3];   /* the last analog port values given to the game */
 static int naomi_analog2(int, int, int, int, int, int, int *);
 #ifndef NAOMI_DIAL_SPEED
-#define NAOMI_DIAL_SPEED 16   /* 1/16 units per frame at full lock, x8 */
+#define NAOMI_DIAL_SPEED 10   /* x/8 sixteenths of a unit per frame, times the wheel angle */
 #endif
 static int coins_pending = 0;
 static int gear_high = 0;
@@ -329,6 +329,8 @@ static int naomi_analog2(int type, int player, int reverse, int min, int max, in
 			if (w > dead) w -= dead;
 			else if (w < -dead) w += dead;
 			else w = 0;
+			/* squared: gentle near the centre, full speed at full lock */
+			w = w * (w < 0 ? -w : w) / (127 - dead);
 			acc += w * NAOMI_DIAL_SPEED / 8;
 			acc &= 0xfffff;
 			*value = acc >> 4;

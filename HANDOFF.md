@@ -95,6 +95,13 @@ slices y sesgan el histograma.
   T11 de MAME 0.35 cuenta demasiados ciclos por instrucción. Al 150 %: 45–56; **al 200 %: 59–60**.
   Por defecto `NAOMI_CLOCK_CPU=200` para ssprint (Makefile). Coste T11 en Flycast: 3,5 → 9 ms. **Pendiente:
   medir en placa**; si no llega, opciones: 150 %, o acelerar el núcleo T11.
+- **Placa real con T11 al 200 % (vídeo 2026-11-05):** velocidad de juego y música correctas, pero 43–46 fps
+  emulados (bucles 37–46). Carrera: T11 10,2 ms, 6502 4,6 ms (0,9 en Flycast: 5×), sonido 3,3 ms, vídeo 1,9,
+  subida+dibujo 8,3 ms por frame mostrado (512x384). Entregada también una versión **sin sonido**
+  (`-DNAOMI_SOUND=0`, `ssprint_nosound_...`) para comparar.
+- Volante: el usuario lo encontró demasiado sensible → curva cuadrática (suave cerca del centro) y
+  `NAOMI_DIAL_SPEED` 16 → 10. Pendiente de probar.
+- El contador de FPS ya no sale al arrancar (`build.sh ssprint 0`); se activa con START 3 s.
 - Nota: los builds `-DNAOMI_FLYCAST` (lectura directa del MIE) cuestan casi 2 frames por llamada: **no sirven
   para medir velocidad**, solo para probar controles. Medir con `ssperf.sh`/`perf.sh` (sin entrada).
 
