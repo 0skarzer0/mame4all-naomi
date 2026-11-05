@@ -2,7 +2,7 @@
 # ssperf.sh LABEL "EXTRA": Super Sprint attract in Flycast, overlay crops
 cd ${MAME4ALL:-../..}
 source /opt/toolchains/dc/kos/environ.sh >/dev/null
-rm -f src/naomi/*.o src/sdl/sound.o src/sndhrdw/pokey.o src/machine/atarisy2.o src/vidhrdw/atarisy2.o src/drivers/atarisy2.o
+rm -f src/naomi/*.o src/sdl/sound.o src/sndhrdw/pokey.o src/machine/atarisy2.o src/vidhrdw/atarisy2.o src/drivers/atarisy2.o src/naomi/naomi_system.o
 EXTRA="-DPROFILER_MAME4ALL $2" ./naomi/build.sh ssprint 1 >/tmp/ss.log 2>&1 || { echo build failed; exit 1; }
 cd ${FCTEST:-$(dirname "$0")}
 ./start.sh ${MAME4ALL:-../..}/mame4all_ssprint_naomi.bin >/dev/null; sleep 20; L=""

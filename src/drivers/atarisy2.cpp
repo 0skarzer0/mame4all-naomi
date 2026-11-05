@@ -180,15 +180,20 @@ void atarisys2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
 #if defined(NAOMI) && defined(NAOMI_SSPRINT1)
 /* Super Sprint rev. 1 waits at 0x8530 (TSTB @#2514 octal = 0x54c / BEQ) for
    an interrupt to set this byte: skip to the interrupt. */
+unsigned naomi_ss_loops;
 static int ssprint_spin_r (int offset)
 {
 	unsigned char *RAM = Machine->memory_region[0];
 	int data = READ_WORD (&RAM[0x54c]);
+	if ((data & 0xff) && cpu_getpc() >= 0x8530 && cpu_getpc() <= 0x8536)
+		naomi_ss_loops++;
+#ifndef NAOMI_SS_NOSPIN
 	if (!(data & 0xff)) {
 		int pc = cpu_getpc();
 		if (pc >= 0x8530 && pc <= 0x8536)
 			cpu_spinuntil_int();
 	}
+#endif
 	return data;
 }
 #endif
@@ -258,11 +263,13 @@ static int ssprint_sound_idle_r (int offset)
 {
 	unsigned char *RAM = Machine->memory_region[2];
 	(void)offset;
+#ifndef NAOMI_SS_NOSPIN
 	if (RAM[0x210] == RAM[0x211] && RAM[0x224] == RAM[0x225]) {
 		int pc = cpu_getpc();
 		if (pc >= 0x8122 && pc <= 0x8125)
 			cpu_spinuntil_int();
 	}
+#endif
 	return RAM[0x211];
 }
 #endif

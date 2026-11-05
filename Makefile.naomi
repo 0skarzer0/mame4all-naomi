@@ -73,7 +73,8 @@ ifeq ($(GAME),ssprint)
 OBJS_DRIVER = src/machine/atarigen.o src/machine/slapstic.o src/machine/atarisy2.o \
 	src/vidhrdw/atarisy2.o src/drivers/atarisy2.o
 OBJS_GAME_CPU = src/t11/t11.o src/m6502/m6502.o
-GAME_DEFS = -DNO_DRIVER_SYSTEM16 -DNO_DRIVER_NEMESIS -DUSE_T11_GP -DUSE_M6502_GP -DNAOMI_SSPRINT1
+GAME_DEFS = -DNO_DRIVER_SYSTEM16 -DNO_DRIVER_NEMESIS -DUSE_T11_GP -DUSE_M6502_GP -DNAOMI_SSPRINT1 \
+	-DNAOMI_CLOCK_CPU=200
 endif
 ifndef OBJS_DRIVER
 $(error unknown GAME $(GAME))

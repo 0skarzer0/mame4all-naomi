@@ -230,7 +230,15 @@ static void update_display_naomi(void)
 		}
 #endif
 		unsigned busy = 100 - (unsigned)(wait_us / ((now - stats_from) * 10));
+#ifdef NAOMI_SSPRINT1
+		{
+			extern unsigned naomi_ss_loops;
+			sprintf(fps_text, "%u/%u %u / %u", emu, frames_shown, busy, naomi_ss_loops);
+			naomi_ss_loops = 0;
+		}
+#else
 		sprintf(fps_text, "%u/%u %u", emu, frames_shown, busy);
+#endif
 		wait_us = 0;
 		last_total = mame4all_totalframes;
 		frames_shown = 0;

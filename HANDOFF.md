@@ -89,6 +89,12 @@ slices y sesgan el histograma.
     `cpu_spinuntil_int()`. 6502 4,9 → 0,9 ms.
 - Resultado Flycast (demo, sin `NAOMI_FLYCAST`): 60 emulados / 60 mostrados, ~97 % ocupado. Juego y sonido OK
   (captura de audio con sonido en partida; la demo es muda).
+- **Velocidad del juego (2026-11-05):** el usuario notó que iba más lento que la recreativa aun a 60 fps.
+  Contador de pasadas del bucle principal del T11 (última cifra de la 1ª línea del contador, `/ N`):
+  60 en el título pero **30 en carrera** al 100 % de reloj, con y sin atajos (`-DNAOMI_SS_NOSPIN`). El núcleo
+  T11 de MAME 0.35 cuenta demasiados ciclos por instrucción. Al 150 %: 45–56; **al 200 %: 59–60**.
+  Por defecto `NAOMI_CLOCK_CPU=200` para ssprint (Makefile). Coste T11 en Flycast: 3,5 → 9 ms. **Pendiente:
+  medir en placa**; si no llega, opciones: 150 %, o acelerar el núcleo T11.
 - Nota: los builds `-DNAOMI_FLYCAST` (lectura directa del MIE) cuestan casi 2 frames por llamada: **no sirven
   para medir velocidad**, solo para probar controles. Medir con `ssperf.sh`/`perf.sh` (sin entrada).
 
