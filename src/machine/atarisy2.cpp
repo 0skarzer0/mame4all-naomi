@@ -295,6 +295,16 @@ int atarisys2_6502_switch_r (int offset)
 	if (tms5220_ready_r ()) result ^= 0x04;
 	if (!(input_port_2_r (offset) & 0x80)) result ^= 0x10;
 
+#if defined(NAOMI) && defined(NAOMI_SSPRINT1)
+	/* Super Sprint rev. 1: after sending a byte to the main CPU (0x84a6) the
+	   6502 spins on this bit until the T11 reads it, which cannot happen
+	   before the T11's next time slice: give the rest of the slice up. */
+	if (atarigen_sound_to_cpu_ready) {
+		int pc = cpu_getpc();
+		if (pc >= 0x849c && pc <= 0x84b0)
+			cpu_yield();
+	}
+#endif
 	return result;
 }
 

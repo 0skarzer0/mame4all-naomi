@@ -23,7 +23,7 @@ extern struct osd_bitmap *scrbitmap;
 extern int gp2x_xoffset, gp2x_yoffset, gp2x_width, gp2x_height;
 
 #define TEX_W 512
-#define TEX_H 256
+#define TEX_H 512
 
 static pvr_ptr_t tex[2];
 static uint64_t wait_us = 0;   /* time spent waiting for the display */

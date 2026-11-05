@@ -68,6 +68,13 @@ ifeq ($(GAME),konamigt)
 OBJS_DRIVER = src/vidhrdw/nemesis.o src/drivers/nemesis.o
 GAME_DEFS = -DNO_DRIVER_SYSTEM16
 endif
+ifeq ($(GAME),ssprint)
+# Super Sprint (Atari System 2: T11 + 6502). The ROM set given is revision 1.
+OBJS_DRIVER = src/machine/atarigen.o src/machine/slapstic.o src/machine/atarisy2.o \
+	src/vidhrdw/atarisy2.o src/drivers/atarisy2.o
+OBJS_GAME_CPU = src/t11/t11.o src/m6502/m6502.o
+GAME_DEFS = -DNO_DRIVER_SYSTEM16 -DNO_DRIVER_NEMESIS -DUSE_T11_GP -DUSE_M6502_GP -DNAOMI_SSPRINT1
+endif
 ifndef OBJS_DRIVER
 $(error unknown GAME $(GAME))
 endif
@@ -82,7 +89,7 @@ endif
 OBJS_CPU = \
 	$(M68K_CORE) src/fame/musashi.o src/fame/m68000.o \
 	src/raze/faze/raze_1.o src/raze/faze/raze_2.o src/raze/faze/raze_3.o \
-	src/raze/faze/raze_4.o src/raze/mamez80/z80.o src/raze/z80intrf.o
+	src/raze/faze/raze_4.o src/raze/mamez80/z80.o src/raze/z80intrf.o $(OBJS_GAME_CPU)
 
 OBJS_OSD = \
 	src/sdl/video.o src/sdl/sound.o src/sdl/fileio.o \

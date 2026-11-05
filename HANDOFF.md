@@ -70,6 +70,28 @@ slices y sesgan el histograma.
    sonido a 11 kHz.
 3. Hang-On: le faltan ~8 ms; necesita los dos 68000 más rápidos.
 
+### Super Sprint (`GAME=ssprint`, 2026-11-05)
+
+- Driver Atari System 2 (`src/drivers/atarisy2.cpp`, `machine/atarisy2.cpp`, `vidhrdw/atarisy2.cpp`,
+  `machine/atarigen.cpp`, `machine/slapstic.cpp`), CPUs T11 (`src/t11`) + 6502 (`src/m6502`),
+  YM2151 + 2 POKEY. `-DUSE_T11_GP -DUSE_M6502_GP`.
+- El romset del usuario es la **revisión 1** (programa 136042-136/137/138/139, sonido 119/120); MAME 0.35 solo
+  tenía la revisión 4 (325/329/330/331, 419/420). Añadida bajo `NAOMI_SSPRINT1`; gráficos idénticos.
+  `romzip.py` empaqueta los ficheros por CRC.
+- Pantalla 512x384 → textura PVR ampliada a 512x512 (`TEX_H 512`).
+- Entrada `IPT_DIAL` (volante giratorio): el ángulo del volante da la velocidad de giro, zona muerta ±10,
+  `NAOMI_DIAL_SPEED` (16 por defecto; **por ajustar en el mueble**). El acelerador es BUTTON1 (pedal > mitad).
+- Atajos de espera (solo rev. 1, direcciones fijas):
+  - T11 en `0x8530`: `TSTB @#2514` (octal = 0x54C) / `BEQ` espera a la interrupción → `ssprint_spin_r` en 0x54C
+    hace `cpu_spinuntil_int()`. T11 4,6 → 3,5 ms (Flycast).
+  - 6502 en `0x84A9-0x84AE`: espera a que el T11 lea el byte enviado → `cpu_yield()` en `atarisys2_6502_switch_r`.
+  - 6502 bucle principal `0x80FA-0x8137` con las dos colas vacías (lectura de 0x211 en 0x8122) →
+    `cpu_spinuntil_int()`. 6502 4,9 → 0,9 ms.
+- Resultado Flycast (demo, sin `NAOMI_FLYCAST`): 60 emulados / 60 mostrados, ~97 % ocupado. Juego y sonido OK
+  (captura de audio con sonido en partida; la demo es muda).
+- Nota: los builds `-DNAOMI_FLYCAST` (lectura directa del MIE) cuestan casi 2 frames por llamada: **no sirven
+  para medir velocidad**, solo para probar controles. Medir con `ssperf.sh`/`perf.sh` (sin entrada).
+
 ### Hipótesis (sin comprobar)
 
 1. **Causa común del port, no de cada juego:** dos drivers muy distintos se quedan en ~46–47 fps emulados.

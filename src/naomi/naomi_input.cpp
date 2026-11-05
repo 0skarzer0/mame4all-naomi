@@ -45,6 +45,9 @@ static int service_held = 0;
 static int coin_seen = 0;
 static int last_v[3];   /* the last analog port values given to the game */
 static int naomi_analog2(int, int, int, int, int, int, int *);
+#ifndef NAOMI_DIAL_SPEED
+#define NAOMI_DIAL_SPEED 16   /* 1/16 units per frame at full lock, x8 */
+#endif
 static int coins_pending = 0;
 static int gear_high = 0;
 static uint16_t coin_count[MIE_JVS_COIN_SLOTS];
@@ -312,9 +315,27 @@ static int naomi_analog2(int type, int player, int reverse, int min, int max, in
 	if (!have_jvs)
 		return 0;
 	switch (type) {
+	case IPT_DIAL:
+		/* A free-spinning wheel (Super Sprint, spinners): the cabinet wheel's
+		   angle sets how fast it turns, with a dead zone in the middle. */
+		if (player != 0)
+			return 0;
+		{
+			static int acc = -1;   /* 1/16 units */
+			if (acc < 0)
+				acc = def << 4;
+			int w = reverse ? -steer : steer;
+			const int dead = 10;
+			if (w > dead) w -= dead;
+			else if (w < -dead) w += dead;
+			else w = 0;
+			acc += w * NAOMI_DIAL_SPEED / 8;
+			acc &= 0xfffff;
+			*value = acc >> 4;
+		}
+		return 1;
 	case IPT_AD_STICK_X:
 	case IPT_PADDLE:
-	case IPT_DIAL:
 		if (player != 0)
 			return 0;
 		{

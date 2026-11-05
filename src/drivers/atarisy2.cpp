@@ -177,8 +177,27 @@ void atarisys2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh);
  *
  *************************************/
 
+#if defined(NAOMI) && defined(NAOMI_SSPRINT1)
+/* Super Sprint rev. 1 waits at 0x8530 (TSTB @#2514 octal = 0x54c / BEQ) for
+   an interrupt to set this byte: skip to the interrupt. */
+static int ssprint_spin_r (int offset)
+{
+	unsigned char *RAM = Machine->memory_region[0];
+	int data = READ_WORD (&RAM[0x54c]);
+	if (!(data & 0xff)) {
+		int pc = cpu_getpc();
+		if (pc >= 0x8530 && pc <= 0x8536)
+			cpu_spinuntil_int();
+	}
+	return data;
+}
+#endif
+
 static struct MemoryReadAddress atarisys2_readmem[] =
 {
+#if defined(NAOMI) && defined(NAOMI_SSPRINT1)
+	{ 0x054c, 0x054d, ssprint_spin_r },
+#endif
 	{ 0x0000, 0x0fff, MRA_RAM },
 	{ 0x1000, 0x11ff, paletteram_word_r },
 	{ 0x1400, 0x1403, atarisys2_adc_r },
@@ -231,8 +250,28 @@ static void sound_eeprom_w (int offset, int data)
 	}*/
 }
 
+#if defined(NAOMI) && defined(NAOMI_SSPRINT1)
+/* Super Sprint rev. 1: the 6502's main loop (0x80fa-0x8137) polls two
+   queues filled by its interrupts; with both empty, skip to the next
+   interrupt (read of 0x211 by CPX at 0x8122). */
+static int ssprint_sound_idle_r (int offset)
+{
+	unsigned char *RAM = Machine->memory_region[2];
+	(void)offset;
+	if (RAM[0x210] == RAM[0x211] && RAM[0x224] == RAM[0x225]) {
+		int pc = cpu_getpc();
+		if (pc >= 0x8122 && pc <= 0x8125)
+			cpu_spinuntil_int();
+	}
+	return RAM[0x211];
+}
+#endif
+
 static struct MemoryReadAddress atarisys2_sound_readmem[] =
 {
+#if defined(NAOMI) && defined(NAOMI_SSPRINT1)
+	{ 0x0211, 0x0211, ssprint_sound_idle_r },
+#endif
 	{ 0x0000, 0x0fff, MRA_RAM },
 	{ 0x1000, 0x17ff, MRA_RAM, &atarigen_eeprom, &atarigen_eeprom_size },	/* EEPROM */
 	{ 0x1800, 0x180f, pokey1_r },
@@ -1232,10 +1271,18 @@ ROM_END
 
 ROM_START( ssprint_rom )
 	ROM_REGION(0x90000)	/* 9*64k for T11 code */
+#if defined(NAOMI) && defined(NAOMI_SSPRINT1)
+	/* revision 1 (the program ROMs at 7L, 7N, 6F, 6N and the 6502's at 2BC, 2D) */
+	ROM_LOAD_ODD ( "136042.138",   0x08000, 0x04000, 0x234a7c65 )   /* even */
+	ROM_LOAD_EVEN( "136042.139",   0x08000, 0x04000, 0x7652a461 )   /* odd  */
+	ROM_LOAD_ODD ( "136042.137",   0x10000, 0x08000, 0xfa4c7e9d )   /* even */
+	ROM_LOAD_EVEN( "136042.136",   0x10000, 0x08000, 0x7c20a249 )   /* odd  */
+#else
 	ROM_LOAD_ODD ( "136042.330",   0x08000, 0x04000, 0xee312027 )   /* even */
 	ROM_LOAD_EVEN( "136042.331",   0x08000, 0x04000, 0x2ef15354 )   /* odd  */
 	ROM_LOAD_ODD ( "136042.329",   0x10000, 0x08000, 0xed1d6205 )   /* even */
 	ROM_LOAD_EVEN( "136042.325",   0x10000, 0x08000, 0xaecaa2bf )   /* odd  */
+#endif
 	ROM_LOAD_ODD ( "136042.127",   0x50000, 0x08000, 0xde6c4db9 )   /* even */
 	ROM_LOAD_EVEN( "136042.123",   0x50000, 0x08000, 0xaff23b5a )   /* odd  */
 	ROM_LOAD_ODD ( "136042.126",   0x70000, 0x08000, 0x92f5392c )   /* even */
@@ -1265,8 +1312,13 @@ ROM_START( ssprint_rom )
 	ROM_LOAD( "136042.218",   0x0c0000, 0x04000, 0x8e500be1 )  /* alpha font */
 
 	ROM_REGION(0x10000)	/* 64k for 6502 code */
+#if defined(NAOMI) && defined(NAOMI_SSPRINT1)
+	ROM_LOAD( "136042.119",   0x08000, 0x4000, 0x0c810231 )
+	ROM_LOAD( "136042.120",   0x0c000, 0x4000, 0x647b7481 )
+#else
 	ROM_LOAD( "136042.419",   0x08000, 0x4000, 0xb277915a )
 	ROM_LOAD( "136042.420",   0x0c000, 0x4000, 0x170b2c53 )
+#endif
 ROM_END
 
 
