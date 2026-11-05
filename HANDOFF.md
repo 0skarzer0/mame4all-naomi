@@ -109,6 +109,13 @@ slices y sesgan el histograma.
 - Volante (2.ª petición del usuario): "como con teclado". Ahora digital con dos velocidades: zona muerta ±14,
   velocidad lenta fija (`NAOMI_DIAL_SLOW` 40/16 por frame) en casi todo el recorrido y rápida
   (`NAOMI_DIAL_FAST` 96/16) pasado ±105 de 127. Pendiente de probar.
+- **Vídeo en 8 bits (2026-11-05, petición del usuario):** textura PVR paletizada de 8 bits, 512x512, twiddled
+  (bloques de 32 bytes = 4x8 texels por store queue, tablas `tw_x`/`tw_y`), paleta del juego en la RAM de paleta
+  del PVR (RGB565) cada frame. Mitad de bytes a VRAM y sin traducir cada píxel. Flycast: subida 4,5 → 3,7 ms
+  (Super Sprint), 1,7 → 1,3 (Hang-On). `-DNAOMI_VIDEO16` = camino anterior.
+- **Sin filtro ni escalado** (petición del usuario): filtro NONE (antes bilineal); imagen 1:1 centrada; doble
+  (píxeles enteros) solo si cabe (320x224 → 640x448). Super Sprint sale a 512x384 con bordes.
+- Contador de FPS en su propia textura ARGB1555 (lista TR), se reenvía solo cuando cambia (1 vez/s).
 - El contador de FPS ya no sale al arrancar (`build.sh ssprint 0`); se activa con START 3 s.
 - Nota: los builds `-DNAOMI_FLYCAST` (lectura directa del MIE) cuestan casi 2 frames por llamada: **no sirven
   para medir velocidad**, solo para probar controles. Medir con `ssperf.sh`/`perf.sh` (sin entrada).
