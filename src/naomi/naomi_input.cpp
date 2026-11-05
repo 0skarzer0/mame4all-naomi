@@ -45,8 +45,19 @@ static int service_held = 0;
 static int coin_seen = 0;
 static int last_v[3];   /* the last analog port values given to the game */
 static int naomi_analog2(int, int, int, int, int, int, int *);
-#ifndef NAOMI_DIAL_SPEED
-#define NAOMI_DIAL_SPEED 10   /* x/8 sixteenths of a unit per frame, times the wheel angle */
+/* Free-spinning wheel (IPT_DIAL): sixteenths of a unit per frame, and the
+   wheel angles (0..127 each side) where the two speeds start. */
+#ifndef NAOMI_DIAL_SLOW
+#define NAOMI_DIAL_SLOW 40
+#endif
+#ifndef NAOMI_DIAL_FAST
+#define NAOMI_DIAL_FAST 96
+#endif
+#ifndef NAOMI_DIAL_DEAD
+#define NAOMI_DIAL_DEAD 14
+#endif
+#ifndef NAOMI_DIAL_FAST_FROM
+#define NAOMI_DIAL_FAST_FROM 105
 #endif
 static int coins_pending = 0;
 static int gear_high = 0;
@@ -316,8 +327,9 @@ static int naomi_analog2(int type, int player, int reverse, int min, int max, in
 		return 0;
 	switch (type) {
 	case IPT_DIAL:
-		/* A free-spinning wheel (Super Sprint, spinners): the cabinet wheel's
-		   angle sets how fast it turns, with a dead zone in the middle. */
+		/* A free-spinning wheel (Super Sprint, spinners), played like keys:
+		   past a small dead zone the wheel turns at one steady speed whatever
+		   the angle; turned near the end of its travel, at a faster one. */
 		if (player != 0)
 			return 0;
 		{
@@ -325,13 +337,13 @@ static int naomi_analog2(int type, int player, int reverse, int min, int max, in
 			if (acc < 0)
 				acc = def << 4;
 			int w = reverse ? -steer : steer;
-			const int dead = 10;
-			if (w > dead) w -= dead;
-			else if (w < -dead) w += dead;
-			else w = 0;
-			/* squared: gentle near the centre, full speed at full lock */
-			w = w * (w < 0 ? -w : w) / (127 - dead);
-			acc += w * NAOMI_DIAL_SPEED / 8;
+			int a = w < 0 ? -w : w;
+			int d = 0;
+			if (a > NAOMI_DIAL_FAST_FROM)
+				d = NAOMI_DIAL_FAST;
+			else if (a > NAOMI_DIAL_DEAD)
+				d = NAOMI_DIAL_SLOW;
+			acc += w < 0 ? -d : d;
 			acc &= 0xfffff;
 			*value = acc >> 4;
 		}

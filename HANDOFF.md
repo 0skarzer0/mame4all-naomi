@@ -101,6 +101,14 @@ slices y sesgan el histograma.
   (`-DNAOMI_SOUND=0`, `ssprint_nosound_...`) para comparar.
 - Volante: el usuario lo encontró demasiado sensible → curva cuadrática (suave cerca del centro) y
   `NAOMI_DIAL_SPEED` 16 → 10. Pendiente de probar.
+- **Sin sonido en placa (vídeo 2026-11-05):** 54/14, bucles 53; T11 10,7 ms, 6502 2,5 (con sonido 4,6), sonido 0,1,
+  vídeo 1,6, subida+dibujo 8,3 ms por frame mostrado. ≈17 ms/frame → le falta ~1 ms para 60. Ahora el límite es
+  el **T11** (10,7) y la **subida de la imagen 512x384** (8,3 ms en placa, 4,5 en Flycast). Ideas: textura
+  paletizada de 8 bits (exige twiddle), menos slices de intercalado (`interleave` 10), acelerar el núcleo T11.
+- La versión con sonido pasa a 11025 Hz (`NAOMI_RATE=11025`) para ahorrar ~1,5–2,5 ms.
+- Volante (2.ª petición del usuario): "como con teclado". Ahora digital con dos velocidades: zona muerta ±14,
+  velocidad lenta fija (`NAOMI_DIAL_SLOW` 40/16 por frame) en casi todo el recorrido y rápida
+  (`NAOMI_DIAL_FAST` 96/16) pasado ±105 de 127. Pendiente de probar.
 - El contador de FPS ya no sale al arrancar (`build.sh ssprint 0`); se activa con START 3 s.
 - Nota: los builds `-DNAOMI_FLYCAST` (lectura directa del MIE) cuestan casi 2 frames por llamada: **no sirven
   para medir velocidad**, solo para probar controles. Medir con `ssperf.sh`/`perf.sh` (sin entrada).
