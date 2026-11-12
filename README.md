@@ -67,6 +67,6 @@ Las marcas y juegos pertenecen a sus propietarios (Sega, Konami…).
 - **KallistiOS** (KOS) y su soporte NAOMI, y `naomibintool`.
 - **Flycast**, para probar sin la placa.
 - **DragonMinded**: `libnaomi` (`dimmcomms.c`, protocolo de peek/poke de la NetDIMM) y `netdimm.py` (WiPi / PiForce).
-- **alphanu1**: Daytona USA recomp; de su port nativo para NAOMI sale `naomi_dimmcomms.cpp` y la idea de `live.py`.
+- **alphanu1**: Daytona USA recomp y su port nativo SH-4; de su adaptación a NAOMI (0skarzer0/daytona-arcade-recomp, rama naomi-native) salen `naomi_dimmcomms.cpp` y la idea de `live.py`.
 - **WiPi Netbooter** / PiForce Tools, para la carga por red.
 - El conocimiento del T-11 y del hardware Atari System 2 viene de los drivers de MAME.
