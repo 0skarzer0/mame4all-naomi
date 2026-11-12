@@ -30,10 +30,11 @@ DEFS = -DDREAMCAST -DNAOMI -DNAOMI_GAME=$(GAME) -DNAOMI_FPS_DEFAULT=$(FPS) -DNO_
 INCS = -Isrc/naomi/shim -Isrc -Isrc/sdl -Isrc/z80
 
 OPT = -O3 -fomit-frame-pointer -ffast-math -fno-strict-aliasing -fno-common
-# 32-byte alignment (the SH-4 cache line), as the Dreamcast build had
+# 32-byte alignment (the SH-4 cache line) of functions and loops; labels and
+# jumps are left alone (padding them bloats the code the I-cache must hold)
 ALIGN ?= 1
 ifeq ($(ALIGN),1)
-OPT += -falign-functions=32 -falign-loops=32 -falign-labels=32 -falign-jumps=32
+OPT += -falign-functions=32 -falign-loops=32
 endif
 WARN = -w -fpermissive
 
@@ -74,7 +75,7 @@ OBJS_DRIVER = src/machine/atarigen.o src/machine/slapstic.o src/machine/atarisy2
 	src/vidhrdw/atarisy2.o src/drivers/atarisy2.o
 OBJS_GAME_CPU = src/t11/t11.o src/m6502/m6502.o
 GAME_DEFS = -DNO_DRIVER_SYSTEM16 -DNO_DRIVER_NEMESIS -DUSE_T11_GP -DUSE_M6502_GP -DNAOMI_SSPRINT1 \
-	-DNAOMI_CLOCK_CPU=200
+	-DNAOMI_CLOCK_CPU=200 -DNAOMI_T11_RECOMP
 endif
 ifndef OBJS_DRIVER
 $(error unknown GAME $(GAME))

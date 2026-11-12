@@ -1031,6 +1031,9 @@ int osd_update_frameskip(void)
 	uint64_t now=timer_us_gettime64();
 	naomi_next_frame+=naomi_frame_us;
 	mame4all_totalframes++;
+#ifdef NAOMI_RAMCRC
+	{ extern void naomi_ram_crc(void); naomi_ram_crc(); }
+#endif
 	if (now>naomi_next_frame+4*naomi_frame_us)
 		naomi_next_frame=now;
 	if (now>naomi_next_frame+naomi_frame_us && naomi_skipped<4)

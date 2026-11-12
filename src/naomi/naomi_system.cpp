@@ -94,6 +94,9 @@ void mame4all_prof_show(void) { }
 void mame4all_prof_setmsg(int n, char *msg) { (void)n; (void)msg; }
 #endif
 
+#if (defined(NAOMI_T11STAT) || defined(NAOMI_T11RC_MISSES) || defined(NAOMI_RAMCRC)) && !defined(NAOMI_PCHIST)
+char naomi_pch_text[3][64];
+#endif
 #ifdef NAOMI_PCHIST
 /* Debug: where each CPU is when its time slice ends (top 3 PCs, % of its
    slices) and the % of the asked cycles it really ran (spin hacks end a

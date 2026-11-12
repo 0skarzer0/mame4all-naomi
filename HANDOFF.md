@@ -120,6 +120,35 @@ slices y sesgan el histograma.
 - Nota: los builds `-DNAOMI_FLYCAST` (lectura directa del MIE) cuestan casi 2 frames por llamada: **no sirven
   para medir velocidad**, solo para probar controles. Medir con `ssperf.sh`/`perf.sh` (sin entrada).
 
+### Recompilación estática del T11 de Super Sprint (2026-11-12)
+
+Petición del usuario: "recompila supersprint para naomi2".
+
+- **Diagnóstico (Flycast, `-DNAOMI_T11STAT`):** ~13.200 instrucciones T11 por frame; solo ~2.200 accesos van a
+  handlers de E/S (~1,5 ms). El resto (~6,8 ms) es interpretar: ~100 ciclos SH-4 por instrucción T11.
+  El núcleo cobra 22 ciclos fijos por instrucción (por eso hacía falta el 200 %: la media real es ~12).
+- **Accesos rápidos** en `src/t11/t11.cpp` (solo `NAOMI_SSPRINT1`): RAM 0x0000-0x0fff, ROM con banco 0x4000-0x7fff y
+  ROM fija 0x8200-0xffff se leen directo de `state.bank[]`; RAM se escribe directo. Excepciones: el slapstic
+  (0x8000-0x81ff) y el byte del atajo 0x54C siguen por handler. Ganancia pequeña (~5 %).
+- **Recompilador** `naomi/tools/t11recomp.py`: descubre el código del programa fijo (0x8000-0xffff) siguiendo saltos
+  desde 0x8000, inmediatos que parecen direcciones de código y `naomi/tools/ssprint_t11_entries.txt` (direcciones
+  que caían al intérprete, sacadas con `-DNAOMI_T11RC_MISSES`). Cada bloque (hasta un salto, máx. 64 instrucciones)
+  es una función C que ejecuta **los mismos cuerpos de instrucción de t11ops.h** con el opcode y los operandos como
+  constantes (`OPC`, `I0`, `I1`; `ROPCODE()` redefinido). Tras cada instrucción sale si `t11_ICount <= 0` o si hay
+  una interrupción lista (`t11_irq_ready`), como el intérprete. Memoria por funciones no inline para que el código
+  sea pequeño. Despacho: `t11_rc_table[(PC-0x8000)/2]` en `t11_execute`; sin bloque → intérprete.
+- **Validación:** `-DNAOMI_RAMCRC` muestra un hash de la RAM del T11 en los frames 600/1200/1800. Intérprete y
+  recompilado dan **idéntico** (97D93465 91E04DF1 96534805) → misma emulación instrucción a instrucción.
+- **Resultado Flycast (carrera de la demo):** T11 8,3–9 ms → 5,3–6,2 ms; mostrados 27–39 → 50–56. ~1.800 bloques,
+  ~6.850 instrucciones; ~350 instrucciones/frame siguen interpretadas (3 %).
+- **Ojo con el tamaño del código** (caché de instrucciones de 8 KB): la primera versión ocupaba 1,1 MB y en Flycast
+  iba *más lenta*. Quitar `-falign-labels/-falign-jumps` (rellenaban cada salto) y sacar la memoria a funciones lo
+  dejó en ~0,9 MB. Ideas si en placa no basta: `-Os` para t11.o (~660 KB), encadenar bloques, guardar registros en
+  variables locales dentro del bloque.
+- **Legal:** el código generado (`src/t11/t11_ssprint_rc.h`) es una traducción de la ROM: lo genera `naomi/build.sh`
+  desde `naomi/roms/ssprint.zip` y está en `.gitignore`. Solo se publican el generador y la lista de entradas.
+- **Pendiente: medir en placa.**
+
 ### Hipótesis (sin comprobar)
 
 1. **Causa común del port, no de cada juego:** dos drivers muy distintos se quedan en ~46–47 fps emulados.

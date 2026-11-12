@@ -320,17 +320,39 @@ static void build_overlay(int changed)
 	naomi_input_debug(dbg);
 	overlay_text(1, dbg);
 #endif
-#ifdef NAOMI_PCHIST
+#if defined(NAOMI_PCHIST) || defined(NAOMI_T11STAT) || defined(NAOMI_T11RC_MISSES) || defined(NAOMI_RAMCRC)
 	extern char naomi_pch_text[3][64];
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 3; i++)
 		if (naomi_pch_text[i][0])
 			overlay_text(2 + i, naomi_pch_text[i]);
 #endif
 	send_overlay();
 }
 
+#ifdef NAOMI_RAMCRC
+/* Debug: CRC of the main CPU's RAM at fixed emulated frames, to check that
+   two builds (interpreter / recompiled) run the game identically. */
+void naomi_ram_crc(void)
+{
+	extern char naomi_pch_text[3][64];
+	static const unsigned at[3] = { 600, 1200, 1800 };
+	static unsigned crc[3];
+	for (int i = 0; i < 3; i++)
+		if (mame4all_totalframes == at[i] && !crc[i])
+			{
+			unsigned h = 2166136261u;
+			const unsigned char *m = Machine->memory_region[0];
+			for (int k = 0; k < 0x1000; k++)
+				h = (h ^ m[k]) * 16777619u;
+			crc[i] = h | 1;
+		}
+	sprintf(naomi_pch_text[2], "%X %X %X", crc[0], crc[1], crc[2]);
+}
+#endif
+
 static void update_display_naomi(void)
 {
+
 	const int pitch = (int)(scrbitmap->line[1] - scrbitmap->line[0]);
 	int width = gp2x_width & ~15, height = gp2x_height;
 	if (width > TEX_W) width = TEX_W;
@@ -359,6 +381,29 @@ static void update_display_naomi(void)
 		}
 #endif
 		unsigned busy = 100 - (unsigned)(wait_us / ((now - stats_from) * 10));
+#ifdef NAOMI_T11RC_MISSES
+		{
+			extern unsigned t11_rc_hits, t11_rc_misses, t11_rc_ins;
+			extern char naomi_pch_text[3][64];
+			extern void t11_rc_report (char *);
+			/* per emulated frame: blocks run, interpreted instructions; then top missed addresses */
+			sprintf(naomi_pch_text[0], "%u %u %u", emu ? t11_rc_hits / emu : 0, emu ? t11_rc_misses / emu : 0,
+			        emu ? t11_rc_ins / emu : 0);
+			t11_rc_report(naomi_pch_text[1]);
+			t11_rc_hits = t11_rc_misses = t11_rc_ins = 0;
+		}
+#endif
+#ifdef NAOMI_T11STAT
+		{
+			extern unsigned t11_stat_ins, t11_stat_slow;
+			extern unsigned long long t11_stat_slow_us;
+			extern char naomi_pch_text[3][64];
+			/* per emulated frame: T11 instructions, slow accesses, tenths of ms in their handlers */
+			sprintf(naomi_pch_text[0], "%u %u %u", emu ? t11_stat_ins / emu : 0, emu ? t11_stat_slow / emu : 0,
+			        emu ? (unsigned)(t11_stat_slow_us / (emu * 100)) : 0);
+			t11_stat_ins = t11_stat_slow = 0; t11_stat_slow_us = 0;
+		}
+#endif
 #ifdef NAOMI_SSPRINT1
 		{
 			extern unsigned naomi_ss_loops;
