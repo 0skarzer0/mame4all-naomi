@@ -371,11 +371,16 @@ static void update_display_naomi(void)
 		{
 			static const int slot[8] = { 0, 2, 3, 4, 6, 7, 8, 9 };
 			char *p = prof_text;
+			unsigned pv[8];
 			for (int i = 0; i < 8; i++) {
 				unsigned div = (slot[i] == 8) ? frames_shown : emu;
 				unsigned v = div ? (unsigned)(mame4all_prof_sum[slot[i]] / (div * 100)) : 0;
+				pv[i] = v;
 				p += sprintf(p, "%u ", v);
 			}
+			naomi_live.cpu0 = pv[1]; naomi_live.cpu1 = pv[2]; naomi_live.cpu2 = pv[3];
+			naomi_live.sound = pv[4]; naomi_live.video = pv[5]; naomi_live.upload = pv[6];
+			naomi_live.sound_out = pv[7];
 			for (int i = 0; i < MAME4ALL_PROFILER_MAX; i++)
 				mame4all_prof_sum[i] = 0;
 		}
@@ -404,10 +409,17 @@ static void update_display_naomi(void)
 			t11_stat_ins = t11_stat_slow = 0; t11_stat_slow_us = 0;
 		}
 #endif
+		naomi_live.emulated = emu;
+		naomi_live.shown = frames_shown;
+		naomi_live.busy = busy;
+		if (emu && (!naomi_live.emulated_worst || emu < naomi_live.emulated_worst))
+			naomi_live.emulated_worst = emu;
+		naomi_live.seconds++;
 #ifdef NAOMI_SSPRINT1
 		{
 			extern unsigned naomi_ss_loops;
 			sprintf(fps_text, "%u/%u %u / %u", emu, frames_shown, busy, naomi_ss_loops);
+			naomi_live.game_loops = naomi_ss_loops;
 			naomi_ss_loops = 0;
 		}
 #else

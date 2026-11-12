@@ -148,6 +148,12 @@ Petición del usuario: "recompila supersprint para naomi2".
 - **Legal:** el código generado (`src/t11/t11_ssprint_rc.h`) es una traducción de la ROM: lo genera `naomi/build.sh`
   desde `naomi/roms/ssprint.zip` y está en `.gitignore`. Solo se publican el generador y la lista de entradas.
 - **Pendiente: medir en placa.**
+- **Lectura en directo por la NetDIMM (2026-11-12):** `src/naomi/naomi_dimmcomms.cpp` contesta los peek/poke de la
+  NetDIMM (copiado del port nativo de Daytona, rama naomi-native, que sigue a libnaomi y al residente de dc2naomi) y
+  `naomi_live` (naomi.h) guarda cada segundo: emulados, mostrados, % ocupado, bucles de Super Sprint y los tiempos del
+  profiler. Se lee **en la Raspberry** con `naomi/tools/live.py NETDIMM_IP 0xADDR [SEGUNDOS]`
+  (`ADDR` = `sh-elf-nm mame4all_GAME.elf | grep naomi_live`; cambia con cada build). Funciona sin el contador en
+  pantalla. Acceso a la Pi: ver HANDOFF de dc2naomi (`tools/board/pi.py`, `piput.py`; contraseña solo en el chat).
 
 ### Hipótesis (sin comprobar)
 

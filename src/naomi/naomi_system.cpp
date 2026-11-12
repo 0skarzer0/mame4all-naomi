@@ -48,6 +48,7 @@ void gp2x_init(int tickspersecond, int bpp, int rate, int bits, int stereo, int 
 	memset(text_screen, 0, sizeof(text_screen));
 	naomi_video_init();
 	naomi_input_init();
+	naomi_dimmcomms_start();
 }
 
 void gp2x_deinit(void)

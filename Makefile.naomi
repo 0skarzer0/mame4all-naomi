@@ -96,7 +96,7 @@ OBJS_CPU = \
 OBJS_OSD = \
 	src/sdl/video.o src/sdl/sound.o src/sdl/fileio.o \
 	src/naomi/naomi_main.o src/naomi/naomi_system.o src/naomi/naomi_video.o \
-	src/naomi/naomi_audio.o src/naomi/naomi_input.o src/naomi/naomi_drivers.o
+	src/naomi/naomi_audio.o src/naomi/naomi_input.o src/naomi/naomi_dimmcomms.o src/naomi/naomi_drivers.o
 
 OBJS = $(OBJS_CORE) $(OBJS_DRIVER) $(OBJS_CPU) $(OBJS_OSD)
 
