@@ -154,6 +154,20 @@ Petición del usuario: "recompila supersprint para naomi2".
   profiler. Se lee **en la Raspberry** con `naomi/tools/live.py NETDIMM_IP 0xADDR [SEGUNDOS]`
   (`ADDR` = `sh-elf-nm mame4all_GAME.elf | grep naomi_live`; cambia con cada build). Funciona sin el contador en
   pantalla. Acceso a la Pi: ver HANDOFF de dc2naomi (`tools/board/pi.py`, `piput.py`; contraseña solo en el chat).
+- **Medido en la placa por red (2026-11-12, demo de Super Sprint, sonido 11 kHz, décimas→ms por frame emulado):**
+
+  | Variante | emu/mostrados | T11 | 6502 | sonido | vídeo MAME | subida (por mostrado) |
+  |---|---|---|---|---|---|---|
+  | T11 recompilado -O3 (con frameskip) | 52–61 / 12–15 | 8,7 | 3,1 | 2,2 | 1,5 | 6,5 |
+  | T11 recompilado -Os | 46–54 / 14–15 | **10,9** (peor) | 3,3 | 2,1 | 1,7 | 6,4 |
+  | Intérprete (con frameskip) | 46–65 / 12–14 | 9,2–9,8 | 1,4–5 | 1,5–3 | 1,2–4 | 6,4 |
+  | Recompilado **sin frameskip** (`-DNAOMI_NOSKIP`) | **36–37 / 36–37** | 8,8 | 3,0 | 2,0 | 6,0 | 6,5 |
+
+  En placa la recompilación gana poco (~8 %): la caché de instrucciones de 8 KB se come la ventaja (en Flycast
+  era ~35 %). La imagen en 8 bits sí ayuda: subida 8,3 → 6,5 ms. **El usuario no quiere frameskip ni filtros**:
+  dibujando todos los frames cuesta ~26 ms por frame (37 fps). Para 60 sin frameskip hay que quitar ~10 ms:
+  la vía es que el **PVR dibuje la imagen** (fondo de tiles, sprites y textos como polígonos con texturas en VRAM),
+  que elimina el dibujo de MAME (~6 ms) y la subida (~6,5 ms).
 
 ### Hipótesis (sin comprobar)
 

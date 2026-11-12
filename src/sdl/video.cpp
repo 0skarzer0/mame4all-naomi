@@ -1034,6 +1034,12 @@ int osd_update_frameskip(void)
 #ifdef NAOMI_RAMCRC
 	{ extern void naomi_ram_crc(void); naomi_ram_crc(); }
 #endif
+#ifdef NAOMI_NOSKIP
+	/* every frame drawn (the user's choice): if the board cannot keep up the
+	   game runs slower instead of skipping frames */
+	(void)now;
+	return 0;
+#endif
 	if (now>naomi_next_frame+4*naomi_frame_us)
 		naomi_next_frame=now;
 	if (now>naomi_next_frame+naomi_frame_us && naomi_skipped<4)
