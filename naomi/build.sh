@@ -7,7 +7,7 @@ GAME=${1:-hangon}
 FPS=${2:-0}
 # objects depend on the game (driver flags): rebuild all when it changes
 if [ "$(cat .naomi_last 2>/dev/null)" != "$GAME $EXTRA $MAKEOPTS" ]; then
-	make -f Makefile.naomi clean >/dev/null
+	make -f Makefile.naomi GAME=$GAME clean >/dev/null
 	echo "$GAME $EXTRA $MAKEOPTS" > .naomi_last
 fi
 rm -f src/naomi/*.o src/sdl/video.o

@@ -273,3 +273,12 @@ de 60, así que el audio va bien.
   pequeña (10) solo cuenta la dirección; la velocidad sube de 12 a 64 (/16 por frame, 64 = la de teclado de
   MAME) en 40 frames mientras se mantiene el giro.
 - Telemetría: `naomi/tools/live.py` en la Pi (`python3 mame4all_live.py 10.0.0.4 0xADDR SEG`).
+
+### Aviso (2026-11-13): Super Sprint lento = interleave 5
+
+- Todas las imágenes de prueba posteriores a `test_il5` salieron con **interleave 5** sin quererlo:
+  `build.sh` hacía `make clean` sin `GAME=`, así que no borraba `src/drivers/atarisy2.o` y se quedó el de
+  la prueba `-DNAOMI_SS_INTERLEAVE=5`. Con interleave 5 el bucle del juego va a 30 por segundo en carrera
+  (60 fps mostrados, pero el juego a media velocidad). **Interleave 10 es obligatorio**; arreglado el clean.
+- En carrera, "loops" ≈ 58 es la velocidad correcta; 30 es lento. (En otras pantallas el juego va a 30 él solo.)
+- La espera `naomi_pvr_atarisys2_sync` (persiana) está comentada, pendiente de volver a probar con interleave 10.

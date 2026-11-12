@@ -664,7 +664,7 @@ void atarisys2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 	/* the PVR may still be drawing the last frame from the playfield texture
 	   and the palette: let it finish before they change (else bands of the
 	   old and new colours, a "blind" effect, in the palette fades) */
-	naomi_pvr_atarisys2_sync ();
+	//naomi_pvr_atarisys2_sync ();
 	if (!pvr_started)
 	{
 		naomi_pvr_atarisys2_init ();
