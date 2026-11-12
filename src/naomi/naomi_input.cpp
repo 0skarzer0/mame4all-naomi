@@ -2,9 +2,8 @@
    driver. Tuned for a Crazy Taxi upright (wheel, accelerator, brake, a
    two-way shifter, START), and usable with a stick cabinet:
 
-     START                 1 player start
-     brake held + START    a credit, in every game (START is not passed on
-                           to the game until it is released)
+     START                 pressed: a credit; released: 1 player start (sent
+                           once the credit has gone in), in every game
      coin chutes, SERVICE  coin (SERVICE gives a credit without a coin)
      TEST                  the game's service/test mode switch
      wheel                 analog steering (AD stick X, paddle, dial)
@@ -45,25 +44,29 @@ static int service_held = 0;
 static int coin_seen = 0;
 static int last_v[3];   /* the last analog port values given to the game */
 static int naomi_analog2(int, int, int, int, int, int, int *);
-/* Free-spinning wheel (IPT_DIAL): sixteenths of a unit per frame, and the
-   wheel angles (0..127 each side) where the two speeds start. */
+/* Free-spinning wheel (IPT_DIAL), played like keys: past the dead zone only
+   the direction counts. The speed (sixteenths of a unit per frame) starts at
+   SLOW and rises to FAST over RAMP frames while the wheel stays turned that
+   way (FAST = MAME's own key speed, 4 units a frame). */
 #ifndef NAOMI_DIAL_SLOW
-#define NAOMI_DIAL_SLOW 40
+#define NAOMI_DIAL_SLOW 12
 #endif
 #ifndef NAOMI_DIAL_FAST
-#define NAOMI_DIAL_FAST 96
+#define NAOMI_DIAL_FAST 64
+#endif
+#ifndef NAOMI_DIAL_RAMP
+#define NAOMI_DIAL_RAMP 40
 #endif
 #ifndef NAOMI_DIAL_DEAD
-#define NAOMI_DIAL_DEAD 14
-#endif
-#ifndef NAOMI_DIAL_FAST_FROM
-#define NAOMI_DIAL_FAST_FROM 105
+#define NAOMI_DIAL_DEAD 10
 #endif
 static int coins_pending = 0;
 static int gear_high = 0;
 static uint16_t coin_count[MIE_JVS_COIN_SLOTS];
 static int start_held = 0;    /* START was down on the last poll */
-static int start_coin = 0;    /* this START press gave a credit: hide it */
+static int start_coin = 0;    /* this START press switched the overlay: no START */
+static int start_release = 0; /* START released: send it after the credit */
+static int start_pulse = 0;   /* frames left with START on for the game */
 
 static int steer_of(int raw)
 {
@@ -177,22 +180,23 @@ void naomi_input_poll(void)
 		coins_pending++;
 	service_held = service;
 
-	/* brake held + START: a credit. That START press is kept from the
-	   game until it is released, so it does not also start a race. */
+	/* START: pressing it puts a credit in, releasing it is the game's START
+	   (sent by osd_poll_joystick once the credit has gone in). A press held
+	   long enough to switch the frame rate overlay sends nothing. */
 	int start = jvs.p1.start;
-	if (start && !start_held && brake > 128) {
+	if (start && !start_held) {
 		coins_pending++;
-		start_coin = 1;
-	}
-	if (!start)
 		start_coin = 0;
+	}
+	if (!start && start_held && !start_coin)
+		start_release = 1;
 	start_held = start;
 }
 
 /* START as the game sees it */
 static int p1_start(void)
 {
-	return have_jvs && jvs.p1.start && !start_coin;
+	return have_jvs && start_pulse > 0;
 }
 
 static int test_pressed(void)
@@ -255,11 +259,20 @@ void osd_poll_joystick(void)
 	{
 		extern int naomi_show_fps;
 		static int start_frames = 0;
-		if (p1_start()) {
-			if (++start_frames == 180)
+		if (have_jvs && jvs.p1.start) {
+			if (++start_frames == 180) {
 				naomi_show_fps = !naomi_show_fps;
+				start_coin = 1;
+			}
 		} else
 			start_frames = 0;
+	}
+	/* START for the game: after the credit (none pending or showing) */
+	if (start_pulse > 0)
+		start_pulse--;
+	else if (start_release && !coins_pending && !coin_frames) {
+		start_release = 0;
+		start_pulse = 6;
 	}
 	/* each coin: the switch on for 10 frames, then off for 10 */
 	if (coin_frames > 0)
@@ -328,22 +341,26 @@ static int naomi_analog2(int type, int player, int reverse, int min, int max, in
 	switch (type) {
 	case IPT_DIAL:
 		/* A free-spinning wheel (Super Sprint, spinners), played like keys:
-		   past a small dead zone the wheel turns at one steady speed whatever
-		   the angle; turned near the end of its travel, at a faster one. */
+		   the longer it is held turned one way, the faster it turns. */
 		if (player != 0)
 			return 0;
 		{
 			static int acc = -1;   /* 1/16 units */
+			static int dir = 0, held = 0;
 			if (acc < 0)
 				acc = def << 4;
 			int w = reverse ? -steer : steer;
-			int a = w < 0 ? -w : w;
-			int d = 0;
-			if (a > NAOMI_DIAL_FAST_FROM)
-				d = NAOMI_DIAL_FAST;
-			else if (a > NAOMI_DIAL_DEAD)
-				d = NAOMI_DIAL_SLOW;
-			acc += w < 0 ? -d : d;
+			int nd = w > NAOMI_DIAL_DEAD ? 1 : w < -NAOMI_DIAL_DEAD ? -1 : 0;
+			if (nd != dir) {
+				dir = nd;
+				held = 0;
+			}
+			if (dir) {
+				if (held < NAOMI_DIAL_RAMP)
+					held++;
+				acc += dir * (NAOMI_DIAL_SLOW +
+					(NAOMI_DIAL_FAST - NAOMI_DIAL_SLOW) * held / NAOMI_DIAL_RAMP);
+			}
 			acc &= 0xfffff;
 			*value = acc >> 4;
 		}

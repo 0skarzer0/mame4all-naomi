@@ -34,6 +34,7 @@ typedef struct {
 	uint32_t cpu0, cpu1, cpu2, sound, video, upload, sound_out; /* +0x1c..+0x38 */
 	uint32_t dimm_requests;  /* +0x3c */
 	uint32_t emulated_worst; /* +0x40 worst second (poke 0 to start over) */
+	uint32_t pieces_mo, pieces_pf, pieces_al; /* +0x44 PVR renderer: quads of the last frame */
 } naomi_live_t;
 extern volatile naomi_live_t naomi_live;
 void naomi_dimmcomms_start(void);

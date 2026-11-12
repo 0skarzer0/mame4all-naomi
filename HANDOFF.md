@@ -255,3 +255,21 @@ de 60, así que el audio va bien.
 2. Añadir Super Hang-On y Enduro Racer (mismo hardware System 16, poco trabajo).
 3. Spy Hunter / Max RPM (MCR3), Turbo, Sprint 2, Super Sprint, Arkanoid (volante → velocidad de spinner).
 4. Ficha por juego en `docs/games/`.
+
+## Super Sprint con el PVR dibujando (2026-11-12)
+
+- `src/naomi/naomi_pvr_atarisy2.cpp`: el PVR dibuja la imagen (playfield como textura 8bpp de 1024x512 en
+  tiles, objetos y caracteres como quads de atlas 4bpp, paletas ARGB1555). Sin subir framebuffer: vídeo ~1 ms.
+  Vertex buffer de 512 KB (con 64 KB se desbordaba: 5 fps en placa). Antes de tocar textura/paleta se espera
+  a que el PVR acabe el frame anterior (`naomi_pvr_atarisys2_sync`): quita el efecto "persiana" en los fundidos.
+- **Sin frameskip en todos los juegos** (`-DNAOMI_NOSKIP` global) y sin filtro, imagen 8 bits 1:1.
+- Super Sprint usa sonido a 11 kHz por defecto (`-DNAOMI_RATE=11025` en el Makefile). Sin él el sonido
+  cuesta ~4 ms/frame y el usuario notó el juego lento.
+- Placa: 60 fps mostrados = emulados, busy ~75 %; T11 ~7 ms, 6502 ~1,5, sonido 1,4, vídeo 1-4.
+- Ojo: el contador "loops" (bucle principal del T11) NO mide la velocidad: el propio juego va a 30 o 60
+  según la pantalla.
+- Entrada (todos los juegos): START pulsado = moneda, soltado = START (tras entrar la moneda); START 3 s
+  = mostrar/ocultar fps sin mandar START. Volante en IPT_DIAL tratado como digital: pasada una zona muerta
+  pequeña (10) solo cuenta la dirección; la velocidad sube de 12 a 64 (/16 por frame, 64 = la de teclado de
+  MAME) en 40 frames mientras se mantiene el giro.
+- Telemetría: `naomi/tools/live.py` en la Pi (`python3 mame4all_live.py 10.0.0.4 0xADDR SEG`).

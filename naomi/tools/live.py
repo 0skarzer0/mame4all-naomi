@@ -13,7 +13,7 @@ sys.path.append('/sbin/piforce/dm_netboot')
 from netdimm import NetDimm, PeekPokeTypeEnum as T
 
 FIELDS = ('magic version seconds emulated shown busy game_loops cpu0 cpu1 cpu2 sound video upload sound_out '
-          'dimm_requests emulated_worst').split()
+          'dimm_requests emulated_worst pieces_mo pieces_pf pieces_al').split()
 
 
 def main():
@@ -33,10 +33,11 @@ def main():
         if live['seconds'] != last:
             last = live['seconds']
             print('%4ds emu %2d shown %2d busy %3d%% loops %2d | cpu0 %4.1f cpu1 %4.1f cpu2 %4.1f snd %4.1f vid %4.1f '
-                  'upl %4.1f | worst %2d' % (live['seconds'], live['emulated'], live['shown'], live['busy'],
+                  'upl %4.1f | worst %2d | quads %d/%d/%d' % (live['seconds'], live['emulated'], live['shown'], live['busy'],
                                               live['game_loops'], t(live['cpu0']), t(live['cpu1']), t(live['cpu2']),
                                               t(live['sound']), t(live['video']), t(live['upload']),
-                                              live['emulated_worst']), flush=True)
+                                              live['emulated_worst'], live['pieces_mo'], live['pieces_pf'],
+                                              live['pieces_al']), flush=True)
         time.sleep(0.25)
 
 

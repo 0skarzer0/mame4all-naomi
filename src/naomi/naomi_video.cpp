@@ -54,8 +54,8 @@ void naomi_video_init(void)
 	if (video_up)
 		return;
 	pvr_init_params_t params = {
-		{ PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_0 },
-		64 * 1024, 0, 0, 0, 0, 0
+		{ PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_16 },
+		512 * 1024, 0, 0, 0, 0, 0
 	};
 	pvr_init(&params);
 	pvr_set_bg_color(0.0f, 0.0f, 0.0f);
@@ -189,6 +189,17 @@ static void quad(float x0, float y0, float x1, float y1, float u1, float v1)
 
 static int ovl_on = 0;
 
+#ifdef NAOMI_PVR_ATARISYS2
+/* the game's own PVR renderer (naomi_pvr_atarisy2.cpp) draws the picture */
+int naomi_pvr_atarisys2_ready(void);
+void naomi_pvr_atarisys2_palette(void);
+void naomi_pvr_atarisys2_draw_op(void);
+void naomi_pvr_atarisys2_draw_pt(void);
+#define GAME_PVR naomi_pvr_atarisys2_ready()
+#else
+#define GAME_PVR 0
+#endif
+
 static void draw(int width, int height)
 {
 	pvr_poly_cxt_t cxt;
@@ -198,11 +209,34 @@ static void draw(int width, int height)
 	uint64_t w0 = timer_us_gettime64();
 	pvr_wait_ready();
 	wait_us += timer_us_gettime64() - w0;
-#ifndef NAOMI_VIDEO16
-	upload_palette();
+	const int game = GAME_PVR;
+#ifdef NAOMI_PVR_ATARISYS2
+	static int game_pal;
+	if (game) {
+		if (!game_pal) {
+			pvr_set_pal_format(PVR_PAL_ARGB1555);
+			game_pal = 1;
+		}
+		naomi_pvr_atarisys2_palette();
+	} else
 #endif
+	{
+#ifndef NAOMI_VIDEO16
+		upload_palette();
+#endif
+	}
 	pvr_scene_begin();
 	pvr_list_begin(PVR_LIST_OP_POLY);
+#ifdef NAOMI_PVR_ATARISYS2
+	if (game) {
+		naomi_pvr_atarisys2_draw_op();
+		pvr_list_finish();
+		pvr_list_begin(PVR_LIST_PT_POLY);
+		naomi_pvr_atarisys2_draw_pt();
+		pvr_list_finish();
+		goto overlay;
+	}
+#endif
 #ifdef NAOMI_VIDEO16
 	pvr_poly_cxt_txr(&cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565 | PVR_TXRFMT_NONTWIDDLED,
 	                 TEX_W, TEX_H, tex[cur], NAOMI_FILTER ? PVR_FILTER_BILINEAR : PVR_FILTER_NONE);
@@ -221,7 +255,11 @@ static void draw(int width, int height)
 		quad(x0, y0, x0 + w, y0 + h, u1, v1);
 	}
 	pvr_list_finish();
-
+	pvr_list_begin(PVR_LIST_PT_POLY);
+	pvr_list_finish();
+#ifdef NAOMI_PVR_ATARISYS2
+overlay:
+#endif
 	pvr_list_begin(PVR_LIST_TR_POLY);
 	if (ovl_on) {
 		/* overlay texels are 1:1 on screen horizontally: 512 texels -> 512 px */
@@ -438,7 +476,8 @@ static void update_display_naomi(void)
 	}
 
 	mame4all_prof_start(8);
-	upload(tex[cur], scrbitmap->line[gp2x_yoffset] + gp2x_xoffset, pitch, width, height);
+	if (!GAME_PVR)
+		upload(tex[cur], scrbitmap->line[gp2x_yoffset] + gp2x_xoffset, pitch, width, height);
 	mame4all_prof_end(8);
 	draw(width, height);
 }

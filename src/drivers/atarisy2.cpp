@@ -965,7 +965,11 @@ static struct MachineDriver ssprint_machine_driver =
 		},
 	},
 	60, DEFAULT_REAL_60HZ_VBLANK_DURATION,	/* frames per second, vblank duration */
+#ifdef NAOMI_SS_INTERLEAVE
+	NAOMI_SS_INTERLEAVE,
+#else
 	10,    /* we need some interleave since the sound CPU talks to the main CPU */
+#endif
 	ssprint_init_machine,
 
 	/* video hardware */

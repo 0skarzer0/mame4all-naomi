@@ -597,6 +597,149 @@ void atarisys2_render_mo (struct osd_bitmap *bitmap, struct rectangle *clip, uns
 
 ***************************************************************************/
 
+#ifdef NAOMI_PVR_ATARISYS2
+/* NAOMI: the same picture, drawn by the PVR (src/naomi/naomi_pvr_atarisy2.cpp).
+   This walks the same data as the function below and hands the pieces over. */
+void naomi_pvr_atarisys2_sync(void);
+void naomi_pvr_atarisys2_init(void);
+void naomi_pvr_atarisys2_begin(int xscroll, int yscroll);
+void naomi_pvr_atarisys2_pf_tile(int sx, int sy, int tile, int color);
+void naomi_pvr_atarisys2_mo(int x, int y, int pict, int color, int hflip, int clip_y0, int clip_y1);
+void naomi_pvr_atarisys2_pf_high(int x, int y, int tile, int color, int cx0, int cx1, int cy0, int cy1);
+void naomi_pvr_atarisys2_alpha(int x, int y, int pict, int color);
+
+static void pvr_render_mo (struct osd_bitmap *bitmap, struct rectangle *clip, unsigned short *data, void *param)
+{
+	struct atarisys2_mo_data *modata = (struct atarisys2_mo_data *)param;
+	int *redraw_list = modata->redraw_list;
+	int *redraw = modata->redraw;
+	int *r, redraw_val;
+	int xpos = (data[2] >> 6);
+	int vsize = ((data[1] >> 11) & 7) + 1;
+	int ypos = -(data[0] >> 6) - vsize * 16;
+	int hflip = data[1] & 0x4000;
+	int hold = data[1] & 0x8000;
+	int pict = (data[1] & 0x7ff) + ((data[0] & 7) << 11);
+	int color = (data[3] >> 12) & 3;
+	int priority = (data[3] >> 14) & 3;
+	int y, sy;
+
+	pict = (pict & 0x1ff) | mo_bank[pict >> 9];
+	if (hold)
+		xpos = modata->xhold;
+	modata->xhold = xpos + 16;
+	xpos &= 0x3ff;
+	ypos &= 0x1ff;
+	redraw_val = (xpos << 22) + (ypos << 13) + (priority << 10) + vsize;
+	if (xpos >= XDIM) xpos -= 0x400;
+	if (ypos >= YDIM) ypos -= 0x200;
+	if (xpos <= -16 || xpos >= XDIM)
+		return;
+	for (r = redraw_list; r < redraw; )
+		if (*r++ == redraw_val)
+			break;
+	if (r == redraw)
+	{
+		*redraw++ = redraw_val;
+		modata->redraw = redraw;
+	}
+	for (y = 0, sy = ypos; y < vsize; y++, sy += 16, pict++)
+	{
+		if (sy <= clip->min_y - 16)
+			continue;
+		else if (sy > clip->max_y)
+			break;
+		naomi_pvr_atarisys2_mo (xpos, sy, pict, color, hflip, clip->min_y, clip->max_y);
+	}
+}
+
+void atarisys2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
+{
+	static int pvr_started;
+	int x, y, sx, sy, xscroll, yscroll, offs;
+	struct atarisys2_mo_data modata;
+	int redraw_list[1024], *r;
+	int bank[2];
+
+	/* the PVR may still be drawing the last frame from the playfield texture
+	   and the palette: let it finish before they change (else bands of the
+	   old and new colours, a "blind" effect, in the palette fades) */
+	naomi_pvr_atarisys2_sync ();
+	if (!pvr_started)
+	{
+		naomi_pvr_atarisys2_init ();
+		fast_memset (playfielddirty, 1, playfieldram_size / 2);
+		pvr_started = 1;
+	}
+	if (palette_recalc ())
+		fast_memset (playfielddirty, 1, playfieldram_size / 2);
+
+	xscroll = (READ_WORD (&atarigen_hscroll[0]) >> 6);
+	yscroll = (READ_WORD (&atarigen_vscroll[0]) >> 6);
+	xscroll = -(xscroll & 0x3ff);
+	yscroll = -(yscroll & 0x1ff);
+	bank[0] = pf_bank[READ_WORD (&atarigen_hscroll[0]) & 15];
+	bank[1] = pf_bank[READ_WORD (&atarigen_vscroll[0]) & 15];
+	naomi_pvr_atarisys2_begin (xscroll, yscroll);
+
+	/* the whole 128x64 playfield lives in a texture: rewrite the dirty tiles */
+	for (offs = 0; offs < 128 * 64; offs++)
+		if (playfielddirty[offs])
+		{
+			int data = READ_WORD (&playfieldram[offs * 2]);
+			naomi_pvr_atarisys2_pf_tile (offs & 127, offs >> 7, bank[(data >> 10) & 1] + (data & 0x3ff), (data >> 11) & 7);
+			playfielddirty[offs] = 0;
+		}
+
+	modata.xhold = 0;
+	modata.redraw_list = modata.redraw = redraw_list;
+	atarigen_render_display_list (bitmap, pvr_render_mo, &modata);
+
+	/* playfield tiles with higher priority, inside each motion object's rectangle */
+	for (r = redraw_list; r < modata.redraw; r++)
+	{
+		int val = *r;
+		int xpos = (val >> 22) & 0x3ff;
+		int ypos = (val >> 13) & 0x1ff;
+		int pri = (val >> 9) & 6;
+		int h = val & 15;
+		int cx0, cx1, cy0, cy1;
+
+		if (xpos > XDIM) xpos -= 0x400;
+		if (ypos > YDIM) ypos -= 0x200;
+		cx0 = xpos; cx1 = xpos + 15; cy0 = ypos; cy1 = ypos + h * 16 - 1;
+		xpos = (xpos - xscroll) / 8;
+		ypos = (ypos - yscroll) / 8;
+		for (x = xpos + 2; x >= xpos; x--)
+		{
+			sx = (x * 8 + xscroll) & 0x3ff;
+			if (sx > 0x3f8) sx -= 0x400;
+			for (y = ypos + h * 2; y >= ypos; y--)
+			{
+				int data, pfpri;
+				sy = (y * 8 + yscroll) & 0x1ff;
+				if (sy > 0x1f8) sy -= 0x200;
+				offs = (y & 0x3f) * 128 + (x & 0x7f);
+				data = READ_WORD (&playfieldram[offs * 2]);
+				pfpri = ((~data >> 13) & 6) | 1;
+				if ((pri + pfpri) & 4)
+					naomi_pvr_atarisys2_pf_high (sx, sy, bank[(data >> 10) & 1] + (data & 0x3ff), (data >> 11) & 7,
+					                             cx0, cx1, cy0, cy1);
+			}
+		}
+	}
+
+	/* alphanumerics */
+	for (sy = 0; sy < YCHARS; sy++)
+		for (sx = 0, offs = sy * 64; sx < XCHARS; sx++, offs++)
+		{
+			int data = READ_WORD (&alpharam[offs * 2]);
+			int pict = data & 0x3ff;
+			if (pict)
+				naomi_pvr_atarisys2_alpha (8 * sx, 8 * sy, pict, (data >> 13) & 7);
+		}
+}
+#else
 void atarisys2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 {
 	int x, y, sx, sy, xoffs, yoffs, xscroll, yscroll, offs;
@@ -779,6 +922,8 @@ void atarisys2_vh_screenrefresh(struct osd_bitmap *bitmap,int full_refresh)
 }
 
 
+
+#endif /* NAOMI_PVR_ATARISYS2 */
 
 /*************************************
  *
