@@ -299,6 +299,20 @@ int osd_joy_pressed(int joycode)
 	if (!have_jvs)
 		return 0;
 	const mie_jvs_player_sw_t &p1 = jvs.p1, &p2 = jvs.p2;
+#ifdef NAOMI_SPYHUNT
+	/* Spy Hunter: the accelerator is analog (the pedal); the cabinet's brake pedal fires the machine guns, the
+	   shifter (either way) toggles the gear, and other weapons need extra buttons (JVS push switches 3-6). */
+	switch (joycode) {
+	case OSD_JOY_FIRE1:  return p1.sw1 || brake > 128;
+	case OSD_JOY_FIRE2:  return p1.sw9;
+	case OSD_JOY_FIRE3:  return p1.sw10;
+	case OSD_JOY_FIRE4:  return p1.sw11;
+	case OSD_JOY_FIRE5:  return p1.sw12;
+	case OSD_JOY_FIRE6:  return p1.up || p1.down;
+	case OSD_JOY_UP: case OSD_JOY_DOWN: case OSD_JOY_LEFT: case OSD_JOY_RIGHT: return 0;
+	default: return 0;
+	}
+#endif
 	switch (joycode) {
 	case OSD_JOY_LEFT:   return p1.left || steer < -64;
 	case OSD_JOY_RIGHT:  return p1.right || steer > 64;

@@ -259,7 +259,7 @@ de 60, así que el audio va bien.
 
 ## Trabajo pendiente tras Super Sprint (2026-11-13)
 
-**Hecho (solo compilación, sin placa ni ROMs):** `Makefile.naomi` admite `GAME=csprint|shangon|shangonb|enduror|
+**Hecho (compilación; los cuatro de abajo también probados en Flycast):** spyhunt, turbo, paperboy, csprint. Antes:  `Makefile.naomi` admite `GAME=csprint|shangon|shangonb|enduror|
 endurobl|endurob2`. Comprobado compilando con zips vacíos. Falta: ROMs (`romzip.py` los reempaqueta), mapear
 controles (Super Hang-On y Enduro Racer no tienen el `ho_io_adc_r` de Hang-On; Super Hang-On está marcado
 `GAME_NOT_WORKING` en MAME 0.35), y para `csprint` generar la lista de entradas del T11 (`naomi/tools/
