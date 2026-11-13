@@ -20,7 +20,7 @@
    0 (8-bit textures) and, from entry 256, one 16-entry bank per colour code of
    each layer, built from the gfx colour tables every frame, with the
    transparent pens' alpha bit clear (punch-through list).
-   No filtering, no scaling: 1:1 pixels centred on the 640x480 screen. */
+   Full screen x1.25 with bilinear filter by default (NAOMI_SS_FULL 0: 1:1, no filter). */
 #include <kos.h>
 #include <dc/pvr.h>
 #include <dc/sq.h>
@@ -32,8 +32,39 @@
 #define SCR_H 480
 #define VIS_W 512
 #define VIS_H 384
-#define OX ((SCR_W - VIS_W) / 2)
-#define OY ((SCR_H - VIS_H) / 2)
+/* Where the picture goes. With NAOMI_SS_FULL 2 (too slow on the board: 25-30 fps) it fills the 640x480
+   screen with a "sharp bilinear" look: naomi_video.cpp has it drawn here at
+   x2, no filter, into a 1024x768 texture (four 512x384 renders), then shows
+   that texture on the whole screen with the bilinear filter.
+   NAOMI_SS_FULL 3 (default): the whole picture drawn 1:1 without filter into a
+   512x384 texture, and that texture shown on the whole screen with the
+   bilinear filter (filtering each piece, as 1 does, loses the thin strokes of
+   the punch-through text and shows the joins between tiles);
+   NAOMI_SS_FULL 1: drawn straight at x1.25 with the bilinear filter;
+   0: 1:1 pixels centred, no filter. */
+#ifndef NAOMI_SS_FULL
+#define NAOMI_SS_FULL 3
+#endif
+static float SC = NAOMI_SS_FULL == 1 ? (float)SCR_W / VIS_W : 1.0f;
+static float OX = NAOMI_SS_FULL == 1 ? 0.0f : (float)((SCR_W - VIS_W) / 2);
+static float OY = NAOMI_SS_FULL == 1 ? 0.0f : (float)((SCR_H - VIS_H) / 2);
+static int FILTER = NAOMI_SS_FULL == 1 ? PVR_FILTER_BILINEAR : PVR_FILTER_NONE;
+static float INSET = NAOMI_SS_FULL == 1 ? 0.5f : 0.0f;   /* keep the filter inside each atlas element */
+
+/* draw at scale sc, shifted by (ox, oy), with or without the bilinear filter */
+void naomi_pvr_atarisys2_view(float sc, float ox, float oy, int filter)
+{
+	SC = sc;
+	OX = ox;
+	OY = oy;
+	FILTER = filter ? PVR_FILTER_BILINEAR : PVR_FILTER_NONE;
+	INSET = filter ? 0.5f : 0.0f;
+}
+
+int naomi_pvr_atarisys2_sharp(void)
+{
+	return NAOMI_SS_FULL >= 2 ? NAOMI_SS_FULL : 0;
+}
 
 /* PVR palette banks (16 entries each) */
 #define BANK_PFHI 16   /* 8 colours: playfield, pens 0-7 transparent */
@@ -221,6 +252,8 @@ static void quad(float x0, float y0, float x1, float y1, float u0, float v0, flo
 	v.oargb = 0;
 	v.z = z;
 	v.flags = PVR_CMD_VERTEX;
+	x0 = OX + x0 * SC; x1 = OX + x1 * SC;
+	y0 = OY + y0 * SC; y1 = OY + y1 * SC;
 	v.x = x0; v.y = y1; v.u = u0; v.v = v1; pvr_prim(&v, sizeof(v));
 	v.x = x0; v.y = y0; v.u = u0; v.v = v0; pvr_prim(&v, sizeof(v));
 	v.x = x1; v.y = y1; v.u = u1; v.v = v1; pvr_prim(&v, sizeof(v));
@@ -232,7 +265,7 @@ static void header(int list, int fmt, int w, int h, pvr_ptr_t t)
 {
 	pvr_poly_cxt_t cxt;
 	pvr_poly_hdr_t hdr;
-	pvr_poly_cxt_txr(&cxt, list, fmt, w, h, t, PVR_FILTER_NONE);
+	pvr_poly_cxt_txr(&cxt, list, fmt, w, h, t, FILTER);
 	pvr_poly_compile(&hdr, &cxt);
 	pvr_prim(&hdr, sizeof(hdr));
 }
@@ -254,14 +287,14 @@ static void piece(int x, int y, int s, int ex, int ey, int tw, int th, int hflip
 		return;
 	float u0, u1;
 	if (hflip) {
-		u0 = (float)(ex + s - (x0 - x)) / tw;
-		u1 = (float)(ex + s - (x1 - x)) / tw;
+		u0 = (ex + s - (x0 - x) - INSET) / tw;
+		u1 = (ex + s - (x1 - x) + INSET) / tw;
 	} else {
-		u0 = (float)(ex + (x0 - x)) / tw;
-		u1 = (float)(ex + (x1 - x)) / tw;
+		u0 = (ex + (x0 - x) + INSET) / tw;
+		u1 = (ex + (x1 - x) - INSET) / tw;
 	}
-	float v0 = (float)(ey + (y0 - y)) / th, v1 = (float)(ey + (y1 - y)) / th;
-	quad((float)(OX + x0), (float)(OY + y0), (float)(OX + x1), (float)(OY + y1), u0, v0, u1, v1, z);
+	float v0 = (ey + (y0 - y) + INSET) / th, v1 = (ey + (y1 - y) - INSET) / th;
+	quad((float)x0, (float)y0, (float)x1, (float)y1, u0, v0, u1, v1, z);
 }
 
 void naomi_pvr_atarisys2_draw_op(void)
@@ -271,7 +304,7 @@ void naomi_pvr_atarisys2_draw_op(void)
 	/* the playfield: bitmap (x, y) shows texel ((x - xscroll) & 1023, (y - yscroll) & 511) */
 	header(PVR_LIST_OP_POLY, PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(0), 1024, 512, pf_tex);
 	float u0 = (float)((-scroll_x) & 1023) / 1024.0f, v0 = (float)((-scroll_y) & 511) / 512.0f;
-	quad(OX, OY, OX + VIS_W, OY + VIS_H, u0, v0, u0 + VIS_W / 1024.0f, v0 + VIS_H / 512.0f, 1.0f);
+	quad(0, 0, VIS_W, VIS_H, u0, v0, u0 + VIS_W / 1024.0f, v0 + VIS_H / 512.0f, 1.0f);
 }
 
 void naomi_pvr_atarisys2_draw_pt(void)

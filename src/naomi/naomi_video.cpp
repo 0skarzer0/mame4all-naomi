@@ -173,12 +173,13 @@ static void upload(void *dst, const unsigned char *src, int pitch, int width, in
 #endif
 }
 
+static float quad_z = 1.0f;
 static void quad(float x0, float y0, float x1, float y1, float u1, float v1)
 {
 	pvr_vertex_t v;
 	v.argb = 0xffffffff;
 	v.oargb = 0;
-	v.z = 1.0f;
+	v.z = quad_z;
 	v.flags = PVR_CMD_VERTEX;
 	v.x = x0; v.y = y1; v.u = 0.0f; v.v = v1;   pvr_prim(&v, sizeof(v));
 	v.x = x0; v.y = y0; v.u = 0.0f; v.v = 0.0f; pvr_prim(&v, sizeof(v));
@@ -189,12 +190,18 @@ static void quad(float x0, float y0, float x1, float y1, float u1, float v1)
 
 static int ovl_on = 0;
 
+/* scanline darkness, 0 (none) to 15 (black) */
+#ifndef NAOMI_SCANLINES
+#define NAOMI_SCANLINES 0
+#endif
 #ifdef NAOMI_PVR_ATARISYS2
 /* the game's own PVR renderer (naomi_pvr_atarisy2.cpp) draws the picture */
 int naomi_pvr_atarisys2_ready(void);
 void naomi_pvr_atarisys2_palette(void);
 void naomi_pvr_atarisys2_draw_op(void);
 void naomi_pvr_atarisys2_draw_pt(void);
+void naomi_pvr_atarisys2_view(float sc, float ox, float oy, int filter);
+int naomi_pvr_atarisys2_sharp(void);
 #define GAME_PVR naomi_pvr_atarisys2_ready()
 #else
 #define GAME_PVR 0
@@ -218,6 +225,51 @@ static void draw(int width, int height)
 			game_pal = 1;
 		}
 		naomi_pvr_atarisys2_palette();
+		if (naomi_pvr_atarisys2_sharp()) {
+			/* the picture goes to a texture first, without filter: at x2
+			   (1024x768, in four 512x384 renders: "sharp bilinear", too
+			   slow on the board) or 1:1 (512x384, one render)... */
+			const int x2 = naomi_pvr_atarisys2_sharp() == 2;
+			const int tw = x2 ? 1024 : 512;
+			static pvr_ptr_t rt;
+			if (!rt)
+				rt = pvr_mem_malloc(tw * tw * 2);
+			for (int q = 0; q < (x2 ? 4 : 1); q++) {
+				int qx = (q & 1) * 512, qy = (q >> 1) * 384;
+				if (q)
+					pvr_wait_ready();
+				pvr_scene_begin_rtt((pvr_ptr_t)((uint8_t *)rt + (qy * tw + qx) * 2), 512, 384, tw);
+				naomi_pvr_atarisys2_view(x2 ? 2.0f : 1.0f, (float)-qx, (float)-qy, 0);
+				pvr_list_begin(PVR_LIST_OP_POLY);
+				naomi_pvr_atarisys2_draw_op();
+				pvr_list_finish();
+				pvr_list_begin(PVR_LIST_PT_POLY);
+				naomi_pvr_atarisys2_draw_pt();
+				pvr_list_finish();
+				/* KOS starts a render when the last list goes in if the PVR is
+				   idle, else only at the next vblank: let the render before
+				   end first, so this one starts at once */
+				pvr_wait_render_done();
+				pvr_list_begin(PVR_LIST_TR_POLY);
+				pvr_list_finish();
+				pvr_scene_finish();
+			}
+			/* ...then that texture on the whole screen, bilinear */
+			pvr_wait_ready();
+			pvr_scene_begin();
+			pvr_list_begin(PVR_LIST_OP_POLY);
+			pvr_poly_cxt_txr(&cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565 | PVR_TXRFMT_NONTWIDDLED,
+			                 tw, tw, rt, PVR_FILTER_BILINEAR);
+			pvr_poly_compile(&hdr, &cxt);
+			pvr_prim(&hdr, sizeof(hdr));
+			quad(0.0f, 0.0f, 640.0f, 480.0f, 1.0f, 0.75f);
+			pvr_list_finish();
+			pvr_list_begin(PVR_LIST_PT_POLY);
+			pvr_list_finish();
+			/* no wait here: this scene's render starts at the next vblank
+			   anyway, and waiting for the texture render costs CPU time */
+			goto overlay;
+		}
 	} else
 #endif
 	{
@@ -261,6 +313,26 @@ static void draw(int width, int height)
 overlay:
 #endif
 	pvr_list_begin(PVR_LIST_TR_POLY);
+	quad_z = 100.0f;   /* in front of the game's own quads */
+#if defined(NAOMI_PVR_ATARISYS2) && NAOMI_SCANLINES
+	if (game) {
+		/* scanlines: every second screen line darkened (an 8x8 texture of
+		   clear and dark rows, repeated over the screen) */
+		static pvr_ptr_t sl_tex;
+		if (!sl_tex) {
+			static uint16_t sl[64];
+			for (int i = 0; i < 64; i++)
+				sl[i] = (i & 8) ? (NAOMI_SCANLINES << 12) : 0;   /* ARGB4444 */
+			sl_tex = pvr_mem_malloc(128);
+			pvr_txr_load(sl, sl_tex, 128);
+		}
+		pvr_poly_cxt_txr(&cxt, PVR_LIST_TR_POLY, PVR_TXRFMT_ARGB4444 | PVR_TXRFMT_NONTWIDDLED,
+		                 8, 8, sl_tex, PVR_FILTER_NONE);
+		pvr_poly_compile(&hdr, &cxt);
+		pvr_prim(&hdr, sizeof(hdr));
+		quad(0.0f, 0.0f, 640.0f, 480.0f, 80.0f, 60.0f);
+	}
+#endif
 	if (ovl_on) {
 		/* overlay texels are 1:1 on screen horizontally: 512 texels -> 512 px */
 		pvr_poly_cxt_txr(&cxt, PVR_LIST_TR_POLY, PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_NONTWIDDLED,
@@ -270,6 +342,7 @@ overlay:
 		quad(0.0f, 0.0f, 512.0f, (float)OVL_TEX_H, 1.0f, 1.0f);
 	}
 	pvr_list_finish();
+	quad_z = 1.0f;
 
 	pvr_scene_finish();
 	cur ^= 1;

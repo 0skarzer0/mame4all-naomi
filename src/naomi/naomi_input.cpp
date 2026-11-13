@@ -44,21 +44,19 @@ static int service_held = 0;
 static int coin_seen = 0;
 static int last_v[3];   /* the last analog port values given to the game */
 static int naomi_analog2(int, int, int, int, int, int, int *);
-/* Free-spinning wheel (IPT_DIAL), played like keys: past the dead zone only
-   the direction counts. The speed (sixteenths of a unit per frame) starts at
-   SLOW and rises to FAST over RAMP frames while the wheel stays turned that
-   way (FAST = MAME's own key speed, 4 units a frame). */
-#ifndef NAOMI_DIAL_SLOW
-#define NAOMI_DIAL_SLOW 12
+/* Free-spinning wheel (IPT_DIAL). Analog (default): the wheel's angle sets
+   the turning speed, with a quadratic curve (gentle near the centre) up to
+   NAOMI_DIAL_MAX sixteenths of a unit per frame at full lock.
+   -DNAOMI_DIAL_DIGITAL: played like keys, past the dead zone only the
+   direction counts and the wheel turns NAOMI_DIAL_KEY sixteenths a frame. */
+#ifndef NAOMI_DIAL_MAX
+#define NAOMI_DIAL_MAX 24
 #endif
-#ifndef NAOMI_DIAL_FAST
-#define NAOMI_DIAL_FAST 64
-#endif
-#ifndef NAOMI_DIAL_RAMP
-#define NAOMI_DIAL_RAMP 40
+#ifndef NAOMI_DIAL_KEY
+#define NAOMI_DIAL_KEY 8
 #endif
 #ifndef NAOMI_DIAL_DEAD
-#define NAOMI_DIAL_DEAD 10
+#define NAOMI_DIAL_DEAD 6
 #endif
 static int coins_pending = 0;
 static int gear_high = 0;
@@ -340,27 +338,26 @@ static int naomi_analog2(int type, int player, int reverse, int min, int max, in
 		return 0;
 	switch (type) {
 	case IPT_DIAL:
-		/* A free-spinning wheel (Super Sprint, spinners), played like keys:
-		   the longer it is held turned one way, the faster it turns. */
+		/* A free-spinning wheel (Super Sprint, spinners) */
 		if (player != 0)
 			return 0;
 		{
 			static int acc = -1;   /* 1/16 units */
-			static int dir = 0, held = 0;
 			if (acc < 0)
 				acc = def << 4;
 			int w = reverse ? -steer : steer;
-			int nd = w > NAOMI_DIAL_DEAD ? 1 : w < -NAOMI_DIAL_DEAD ? -1 : 0;
-			if (nd != dir) {
-				dir = nd;
-				held = 0;
+			int a = w < 0 ? -w : w;
+			int d = 0;
+			if (a > NAOMI_DIAL_DEAD) {
+#ifdef NAOMI_DIAL_DIGITAL
+				d = NAOMI_DIAL_KEY;
+#else
+				a -= NAOMI_DIAL_DEAD;
+				d = NAOMI_DIAL_MAX * a * a / ((127 - NAOMI_DIAL_DEAD) * (127 - NAOMI_DIAL_DEAD));
+				if (d < 1) d = 1;
+#endif
 			}
-			if (dir) {
-				if (held < NAOMI_DIAL_RAMP)
-					held++;
-				acc += dir * (NAOMI_DIAL_SLOW +
-					(NAOMI_DIAL_FAST - NAOMI_DIAL_SLOW) * held / NAOMI_DIAL_RAMP);
-			}
+			acc += w < 0 ? -d : d;
 			acc &= 0xfffff;
 			*value = acc >> 4;
 		}

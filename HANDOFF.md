@@ -282,3 +282,20 @@ de 60, así que el audio va bien.
   (60 fps mostrados, pero el juego a media velocidad). **Interleave 10 es obligatorio**; arreglado el clean.
 - En carrera, "loops" ≈ 58 es la velocidad correcta; 30 es lento. (En otras pantallas el juego va a 30 él solo.)
 - La espera `naomi_pvr_atarisys2_sync` (persiana) está comentada, pendiente de volver a probar con interleave 10.
+
+### Super Sprint: versión definitiva del usuario (2026-11-13)
+
+Instalada en la Pi como `h-ssprint_mame4all_naomi.bin.gz` (la versión sin sonido queda descartada).
+- **Imagen:** pantalla completa 640x480. `NAOMI_SS_FULL 3` (por defecto): el juego se dibuja 1:1 sin filtro
+  en una textura 512x384 (`pvr_scene_begin_rtt`) y esa textura se muestra en toda la pantalla con filtro
+  bilineal. 60 fps en placa. No esperar al render de la textura antes de la escena de pantalla (esa espera
+  dejaba la CPU parada: 35-41 fps); solo `pvr_wait_render_done` antes de cerrar la última lista del RTT.
+  - `NAOMI_SS_FULL 1` (filtrar cada pieza): rompe los trazos finos del texto punch-through y se ven juntas. No usar.
+  - `NAOMI_SS_FULL 2` (sharp bilinear, x2 en 4 renders): 25-30 fps en placa. No usar.
+  - `NAOMI_SS_FULL 0`: ventana 1:1 sin filtro.
+- **Scanlines:** `NAOMI_SCANLINES` 0-15 (naomi_video.cpp), por defecto 0 (el usuario las probó a 6 y al final las quitó).
+- **Sonido:** 11 kHz. A 22 kHz cae a 53-54 fps cuando suena la música (sonido + 6502 ≈ 10 ms/frame).
+- **Volante (IPT_DIAL):** analógico, curva cuadrática, `NAOMI_DIAL_MAX` 24 (/16 por frame a tope), zona muerta 6.
+  `-DNAOMI_DIAL_DIGITAL`: como teclas, `NAOMI_DIAL_KEY` 8 (= MAME sensibilidad 10, incremento 5).
+- **START:** pulsar = moneda, soltar = START; 3 s = mostrar/ocultar fps.
+- Interleave 10 obligatorio (ver aviso anterior). La espera `naomi_pvr_atarisys2_sync` sigue comentada.
