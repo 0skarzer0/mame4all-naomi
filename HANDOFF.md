@@ -278,6 +278,14 @@ Spy Hunter (`mcr3`) y Turbo (`turbo`) no tienen bloque en el Makefile aún.
   (hoy roto en estos dos juegos, ~20 % más rápido en Flycast).
 - Todo se debe medir en la placa; la Raspberry no respondía este día.
 
+## Juegos que NO existen en esta base MAME 0.35 (2026-11-13)
+
+El árbol (277 drivers) no trae ninguno de estos sets modernos: nstocker, buggychl, f1en, smgp, radr, radm, f1lap,
+afightere/afighterb, polepos2, chasehq, chqflag, hotchase, bigrun, offroad, sci, driftout, wrally, gtmr, gtmr2
+(comprobado buscando `ROM_START(nombre_rom)` y por título en `src/drivers/`; `sci` solo coincide con un juego
+distinto de `wiz.cpp`). Para llevarlos a la NAOMI hay que subir antes a un MAME más nuevo (los drivers de Taito Z,
+Konami, Sega X/Y, Gaelco, Kaneko y Leland son posteriores) o hacer un port nativo por juego.
+
 ## Super Sprint con el PVR dibujando (2026-11-12)
 
 - `src/naomi/naomi_pvr_atarisy2.cpp`: el PVR dibuja la imagen (playfield como textura 8bpp de 1024x512 en
