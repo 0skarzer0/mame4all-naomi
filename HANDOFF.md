@@ -278,13 +278,15 @@ Spy Hunter (`mcr3`) y Turbo (`turbo`) no tienen bloque en el Makefile aún.
   (hoy roto en estos dos juegos, ~20 % más rápido en Flycast).
 - Todo se debe medir en la placa; la Raspberry no respondía este día.
 
-## Juegos que NO existen en esta base MAME 0.35 (2026-11-13)
+## Juegos pedidos que faltan en esta base (2026-11-13)
 
-El árbol (277 drivers) no trae ninguno de estos sets modernos: nstocker, buggychl, f1en, smgp, radr, radm, f1lap,
-afightere/afighterb, polepos2, chasehq, chqflag, hotchase, bigrun, offroad, sci, driftout, wrally, gtmr, gtmr2
-(comprobado buscando `ROM_START(nombre_rom)` y por título en `src/drivers/`; `sci` solo coincide con un juego
-distinto de `wiz.cpp`). Para llevarlos a la NAOMI hay que subir antes a un MAME más nuevo (los drivers de Taito Z,
-Konami, Sega X/Y, Gaelco, Kaneko y Leland son posteriores) o hacer un port nativo por juego.
+Este árbol está **recortado** (277 drivers) y no trae: nstocker, buggychl, f1en, smgp, radr, radm, f1lap,
+afightere/afighterb, polepos2, chasehq, chqflag, hotchase, bigrun, offroad, sci, driftout, wrally, gtmr, gtmr2.
+Corrección: no es que sean «posteriores a MAME 0.35»; varios (polepos, wecleman/hotchase, taito_f2/driftout, kaneko16/gtmr)
+aparecen en los árboles de libretro mame2000/mame2003-plus, así que sus drivers se pueden **traer de ahí** (misma
+API de estilo C). Otros (Sega X/Y y System 32: smgp, f1en, radr, radm, f1lap) son de 2004 en adelante y llevan
+V60 o FD1094: no hay camino realista con emulación en la SH-4. Super Hang-On, Enduro Racer, Turbo OutRun y
+Action Fighter traen el 68000 cifrado (FD1089/FD1094): hay que usar sus sets sin proteger o portar el descifrado.
 
 ## Super Sprint con el PVR dibujando (2026-11-12)
 
