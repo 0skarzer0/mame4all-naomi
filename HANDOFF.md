@@ -256,6 +256,27 @@ de 60, así que el audio va bien.
 3. Spy Hunter / Max RPM (MCR3), Turbo, Sprint 2, Super Sprint, Arkanoid (volante → velocidad de spinner).
 4. Ficha por juego en `docs/games/`.
 
+## Trabajo pendiente tras Super Sprint (2026-11-13)
+
+**Hecho (solo compilación, sin placa ni ROMs):** `Makefile.naomi` admite `GAME=csprint|shangon|shangonb|enduror|
+endurobl|endurob2`. Comprobado compilando con zips vacíos. Falta: ROMs (`romzip.py` los reempaqueta), mapear
+controles (Super Hang-On y Enduro Racer no tienen el `ho_io_adc_r` de Hang-On; Super Hang-On está marcado
+`GAME_NOT_WORKING` en MAME 0.35), y para `csprint` generar la lista de entradas del T11 (`naomi/tools/
+ssprint_t11_entries.txt` es de Super Sprint) y los atajos de espera (`NAOMI_SSPRINT1` es específico de la ROM).
+Spy Hunter (`mcr3`) y Turbo (`turbo`) no tienen bloque en el Makefile aún.
+
+**Hang-On y Konami GT con PVR + CPU recompilada: no empezado.** Cuentas (placa, carrera, ms por frame; hay 16,6):
+- Hang-On: 68K 7,9 + Z80 5,0 + 68K sub 5,7 + sonido 2,0 + vídeo 2,4 + otros 3,1 ≈ 26. Pasar el vídeo al PVR
+  ahorra ~1,5; recompilar solo el 68K principal, quizá 2–3. No llega a 60 sin acelerar también el 68K sub y el Z80.
+- Konami GT: 68K 9,2–9,5 + Z80 4,0 + sonido 1,3 + vídeo 4,0 + otros 2,4 ≈ 21. Vídeo al PVR (~3 ms) y 68K
+  recompilado (~3 ms) lo dejarían cerca de 15–16: es viable, pero ajustado.
+- El renderer PVR de Nemesis es más difícil que el de Super Sprint: los caracteres están en RAM
+  (`char_dirty`, se redefinen en juego), hay scroll por línea (256 filas, `copyscrollbitmap`) y sprites con zoom.
+- Un recompilador estático de 68000 es mucho mayor que el de T11 (modos de dirección, flags, 68000 con
+  interrupciones y código automodificable). Alternativa más barata a probar primero: arreglar FAME en ensamblador
+  (hoy roto en estos dos juegos, ~20 % más rápido en Flycast).
+- Todo se debe medir en la placa; la Raspberry no respondía este día.
+
 ## Super Sprint con el PVR dibujando (2026-11-12)
 
 - `src/naomi/naomi_pvr_atarisy2.cpp`: el PVR dibuja la imagen (playfield como textura 8bpp de 1024x512 en

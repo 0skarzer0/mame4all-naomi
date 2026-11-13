@@ -15,8 +15,11 @@ Cada juego se compila como un `.bin` independiente que arranca directamente en e
 | Super Sprint | `ssprint` | ✅ Placa: 60 fps sin frameskip a velocidad correcta. T11 **recompilado estáticamente**, imagen dibujada por el PVR a pantalla completa (512x384 a textura + filtro bilineal), sonido a 11 kHz | T11 3,5 ms, 6502 0,9 ms (con atajos de espera) | Volante del mueble → volante giratorio (velocidad según ángulo, curva suave); acelerador = pedal; START pulsado = moneda, soltado = START. ROM: **revisión 1** (`NAOMI_SSPRINT1`) |
 | Konami GT | `konamigt` | ⚠️ Placa real: 46/13, sonido malo, cuelgues; controles OK | 60 fps | Volante, acelerador, freno y marcha LOW/HIGH (palanca) |
 
-Próximos candidatos (MAME 0.35): Super Hang-On (`shangonb`), Enduro Racer (`endurobl`), Spy Hunter,
-Max RPM, Turbo, Sprint 2, Championship Sprint, Arkanoid.
+Preparados en el `Makefile.naomi` y que **compilan**, pero sin probar (faltan sus ROMs y la placa): Championship
+Sprint (`csprint`, mismo hardware que Super Sprint, sin T11 recompilado todavía), Super Hang-On (`shangon`,
+`shangonb`) y Enduro Racer (`enduror`, `endurobl`). Sus controles analógicos aún no están mapeados.
+
+Próximos candidatos (MAME 0.35): Spy Hunter, Max RPM, Turbo, Sprint 2, Arkanoid.
 
 ## Controles (mueble Crazy Taxi)
 

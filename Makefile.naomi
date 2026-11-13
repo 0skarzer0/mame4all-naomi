@@ -59,7 +59,7 @@ OBJS_CORE = \
 
 # The game's driver (each game: its driver files and the NO_DRIVER_ flag
 # of the drivers left out)
-ifeq ($(GAME),hangon)
+ifneq ($(filter $(GAME),hangon shangon shangonb enduror endurobl endurob2),)
 OBJS_DRIVER = \
 	src/machine/system16.o src/vidhrdw/system16.o src/sndhrdw/system16.o \
 	src/drivers/system16.o
@@ -68,6 +68,15 @@ endif
 ifeq ($(GAME),konamigt)
 OBJS_DRIVER = src/vidhrdw/nemesis.o src/drivers/nemesis.o
 GAME_DEFS = -DNO_DRIVER_SYSTEM16
+endif
+ifeq ($(GAME),csprint)
+# Championship Sprint: same hardware as Super Sprint. Its T11 program is not recompiled yet (needs the ROM to
+# generate the entry list), so it runs on the interpreter.
+OBJS_DRIVER = src/machine/atarigen.o src/machine/slapstic.o src/machine/atarisy2.o \
+	src/vidhrdw/atarisy2.o src/drivers/atarisy2.o src/naomi/naomi_pvr_atarisy2.o
+OBJS_GAME_CPU = src/t11/t11.o src/m6502/m6502.o
+GAME_DEFS = -DNO_DRIVER_SYSTEM16 -DNO_DRIVER_NEMESIS -DUSE_T11_GP -DUSE_M6502_GP \
+	-DNAOMI_CLOCK_CPU=200 -DNAOMI_PVR_ATARISYS2 -DNAOMI_RATE=11025
 endif
 ifeq ($(GAME),ssprint)
 # Super Sprint (Atari System 2: T11 + 6502). The ROM set given is revision 1.
