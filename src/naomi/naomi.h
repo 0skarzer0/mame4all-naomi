@@ -21,7 +21,7 @@ void naomi_input_poll(void);
 void naomi_input_debug(char *out);
 
 /* Live figures, read through the NetDIMM (naomi_dimmcomms.cpp,
-   naomi/tools/live.py): 32-bit words, refreshed once a second. Times in
+   naomi-pi-tools' pi/live.py): 32-bit words, refreshed once a second. Times in
    tenths of a ms per emulated frame (upload: per frame shown). */
 typedef struct {
 	uint32_t magic;          /* +0x00 "MAME" (0x454d414d) */

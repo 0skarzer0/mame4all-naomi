@@ -1,6 +1,6 @@
 /* NAOMI: answer the NetDIMM's peek / poke requests and keep a block of live
    figures to peek at, so a PC can read the frame rate and the profiler while
-   the game runs on the board (naomi/tools/live.py, run on the netbooter
+   the game runs on the board (naomi-pi-tools' pi/live.py, run on the netbooter
    Raspberry). Protocol and code as naomi_dimmcomms.c of the Daytona USA NAOMI
    port (0skarzer0/daytona-arcade-recomp, branch naomi-native), which follows
    libnaomi's dimmcomms.c (DragonMinded) and dc2naomi's resident. Polled every

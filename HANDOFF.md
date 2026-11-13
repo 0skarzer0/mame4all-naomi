@@ -151,7 +151,8 @@ Petición del usuario: "recompila supersprint para naomi2".
 - **Lectura en directo por la NetDIMM (2026-11-12):** `src/naomi/naomi_dimmcomms.cpp` contesta los peek/poke de la
   NetDIMM (copiado del port nativo de Daytona, rama naomi-native, que sigue a libnaomi y al residente de dc2naomi) y
   `naomi_live` (naomi.h) guarda cada segundo: emulados, mostrados, % ocupado, bucles de Super Sprint y los tiempos del
-  profiler. Se lee **en la Raspberry** con `naomi/tools/live.py NETDIMM_IP 0xADDR [SEGUNDOS]`
+  profiler. Se lee **en la Raspberry** con `live.py NETDIMM_IP 0xADDR [SEGUNDOS]` (el lector común de
+  [naomi-pi-tools](https://github.com/0skarzer0/naomi-pi-tools/blob/main/pi/live.py); hasta el 2026-11-13 estaba aquí en `naomi/tools/live.py`)
   (`ADDR` = `sh-elf-nm mame4all_GAME.elf | grep naomi_live`; cambia con cada build). Funciona sin el contador en
   pantalla. Acceso a la Pi: ver HANDOFF de dc2naomi (`tools/board/pi.py`, `piput.py`; contraseña solo en el chat).
 - **Medido en la placa por red (2026-11-12, demo de Super Sprint, sonido 11 kHz, décimas→ms por frame emulado):**
@@ -293,7 +294,7 @@ Spy Hunter (`mcr3`) y Turbo (`turbo`) no tienen bloque en el Makefile aún.
   = mostrar/ocultar fps sin mandar START. Volante en IPT_DIAL tratado como digital: pasada una zona muerta
   pequeña (10) solo cuenta la dirección; la velocidad sube de 12 a 64 (/16 por frame, 64 = la de teclado de
   MAME) en 40 frames mientras se mantiene el giro.
-- Telemetría: `naomi/tools/live.py` en la Pi (`python3 mame4all_live.py 10.0.0.4 0xADDR SEG`).
+- Telemetría: `pi/live.py` de [naomi-pi-tools](https://github.com/0skarzer0/naomi-pi-tools/blob/main/pi/live.py) en la Pi (`python3 live.py 10.0.0.4 0xADDR SEG`; reconoce el bloque `MAME`).
 
 ### Aviso (2026-11-13): Super Sprint lento = interleave 5
 
