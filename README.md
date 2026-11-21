@@ -60,6 +60,23 @@ python3 naomi/tools/romzip.py src/drivers/system16.cpp hangon hangon_moderno.zip
 
 Para WiPi Netbooter: `gzip` el `.bin` y añade una línea en `romsinfo.csv`.
 
+## Código original (MAME4ALL de Chui)
+
+Este port parte del código de **MAME4ALL beta 2** para Dreamcast, publicado por **Chui** en su web
+(*Chui's DC projects*, `chui.dcemu.co.uk`). El árbol `src/` de este repositorio es casi idéntico al de
+ese paquete: la capa SDL (`src/sdl/`) conserva su aviso original («SDL wrapper by Chui») y el resto del
+código lleva las marcas de **Franxis**, autor de MAME4ALL para GP2X.
+
+Se conserva una copia del paquete original, **descomprimido y sin cambios**, para poder ver qué se ha
+modificado para NAOMI:
+
+- Código original: [`MAME4ALL/src`](https://github.com/0skarzer0/Chui-s-Dreamcast-Projects./tree/main/MAME4ALL/src)
+  en el repositorio [Chui-s-Dreamcast-Projects.](https://github.com/0skarzer0/Chui-s-Dreamcast-Projects.)
+  (copia de preservación de su web, con los fuentes de todos sus emuladores).
+- Paquete original: `MAME4ALL/archivos/mame4all-beta2-src.tar.bz2` en ese mismo repositorio.
+- Para ver los cambios de este port respecto al original:
+  `diff -r <copia-de-MAME4ALL/src>/src src`.
+
 ## Pruebas con Flycast
 
 `naomi/flycast/` contiene un parche para Flycast (MIE en modo NAOMI) y scripts para probar sin la placa.
@@ -73,6 +90,9 @@ Las marcas y juegos pertenecen a sus propietarios (Sega, Konami…).
 ## Agradecimientos
 
 - **MAME** (Nicola Salmoria y el MAME Team) y **MAME4ALL** (Franxis), base de este port.
+- **Chui** ([*Chui's DC projects*](https://github.com/0skarzer0/Chui-s-Dreamcast-Projects.)): adaptación de
+  MAME4ALL a SDL y a Dreamcast, de la que parte directamente este port (MAME4ALL beta 2), y autor de la
+  web donde se publicó. Ver «Código original».
 - **KallistiOS** (KOS) y su soporte NAOMI, y `naomibintool`.
 - **Flycast**, para probar sin la placa.
 - **DragonMinded**: `libnaomi` (`dimmcomms.c`, protocolo de peek/poke de la NetDIMM) y `netdimm.py` (WiPi / PiForce).

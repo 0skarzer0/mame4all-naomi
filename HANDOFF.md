@@ -2,6 +2,12 @@
 
 Documento de traspaso entre sesiones (personas o IAs). **Actualízalo en cada sesión.**
 
+**Código original:** el punto de partida es MAME4ALL beta 2 de Chui. Su copia sin cambios, con la
+historia de versiones, está en
+[`MAME4ALL/src`](https://github.com/0skarzer0/Chui-s-Dreamcast-Projects./tree/main/MAME4ALL/src) del repo
+`0skarzer0/Chui-s-Dreamcast-Projects.` (paquete `MAME4ALL/archivos/mame4all-beta2-src.tar.bz2`). Sirve para
+comparar con `diff -r` lo que se ha cambiado para NAOMI. Créditos en el README.
+
 ## Estado (2026-11-04, primera prueba en placa real)
 
 **En placa real (NAOMI 2, mueble Crazy Taxi) los dos juegos van lentos y se cuelgan; en Flycast iban a 60.**
