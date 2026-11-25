@@ -6,7 +6,7 @@ Port de **MAME4ALL** (MAME 0.35) a **NAOMI / NAOMI 2** por netboot, para el mueb
 ## Qué leer primero
 1. [HANDOFF.md](HANDOFF.md) (~100 líneas): reglas, recetas, estado de cada juego y pendientes.
 2. Solo si hace falta: el archivo de [`docs/historial/`](docs/historial/) que indica la tabla del final del HANDOFF, y [docs/arquitectura.md](docs/arquitectura.md) para el código del port.
-2. [README.md](README.md): tabla de juegos y estado.
+3. [README.md](README.md): tabla de juegos y estado.
 
 ## Reglas que no se saltan
 - **Los juegos del usuario (ROMs, discos, imágenes) y su `info.txt` están en `C:\Users\Usuario\Documents\dc2naomi` y no se suben nunca a GitHub** (ni se copian al repo, ni se citan sus datos en commits o documentos). Tampoco BIOS ni binarios que lleven ROMs dentro.
