@@ -4,7 +4,8 @@
 Port de **MAME4ALL** (MAME 0.35) a **NAOMI / NAOMI 2** por netboot, para el mueble Crazy Taxi: cada juego es un `.bin` que arranca directo en él (Super Sprint, Spy Hunter, Turbo, Paperboy…). Rama de trabajo `naomi`; lo propio de NAOMI está en `naomi/` y `Makefile.naomi`.
 
 ## Qué leer primero
-1. [HANDOFF.md](HANDOFF.md) (339 líneas): primero "Estado" y la sección del juego en el que se trabaje; el resto, solo si hace falta.
+1. [HANDOFF.md](HANDOFF.md) (~100 líneas): reglas, recetas, estado de cada juego y pendientes.
+2. Solo si hace falta: el archivo de [`docs/historial/`](docs/historial/) que indica la tabla del final del HANDOFF, y [docs/arquitectura.md](docs/arquitectura.md) para el código del port.
 2. [README.md](README.md): tabla de juegos y estado.
 
 ## Reglas que no se saltan

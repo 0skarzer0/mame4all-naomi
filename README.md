@@ -11,9 +11,9 @@ Cada juego se compila como un `.bin` independiente que arranca directamente en e
 
 | Juego | Driver | Estado | Rendimiento (Flycast) | Notas |
 |---|---|---|---|---|
-| Hang-On | `hangon` | ⚠️ Placa real: 47 fps emulados / 16 mostrados, cuelgues; controles OK | 60 emulados / 41–55 mostrados en carrera | Manillar y acelerador analógicos |
+| Hang-On | `hangon` | ⚠️ Placa real: 47 fps emulados / 16 mostrados (lento); controles OK. Los cuelgues eran del contador de FPS: arreglados | 60 emulados / 41–55 mostrados en carrera | Manillar y acelerador analógicos |
 | Super Sprint | `ssprint` | ✅ Placa: 60 fps sin frameskip a velocidad correcta. T11 **recompilado estáticamente**, imagen dibujada por el PVR a pantalla completa (512x384 a textura + filtro bilineal), sonido a 11 kHz | T11 3,5 ms, 6502 0,9 ms (con atajos de espera) | Volante del mueble → volante giratorio (velocidad según ángulo, curva suave); acelerador = pedal; START pulsado = moneda, soltado = START. ROM: **revisión 1** (`NAOMI_SSPRINT1`) |
-| Konami GT | `konamigt` | ⚠️ Placa real: 46/13, sonido malo, cuelgues; controles OK | 60 fps | Volante, acelerador, freno y marcha LOW/HIGH (palanca) |
+| Konami GT | `konamigt` | ⚠️ Placa real: 46/13, sonido malo (lento); controles OK. Los cuelgues eran del contador de FPS: arreglados | 60 fps | Volante, acelerador, freno y marcha LOW/HIGH (palanca) |
 
 Nuevos (2026-11-13), compilados con las ROMs del propietario y comprobados **solo en Flycast** (arrancan, se ven bien
 y responden a moneda, START, acelerador y volante; **sin medir en la placa**): Spy Hunter (`spyhunt`), Turbo (`turbo`),
