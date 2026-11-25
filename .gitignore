@@ -13,3 +13,5 @@ src/z80/raze_*.s
 src/z80/raze_*.asm
 src/raze/faze/raze_*.s
 src/t11/t11_ssprint_rc.h
+# errores de los encargos al equipo (agy)
+.agy-tasks/*.err
