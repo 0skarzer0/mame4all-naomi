@@ -13,5 +13,6 @@ src/z80/raze_*.s
 src/z80/raze_*.asm
 src/raze/faze/raze_*.s
 src/t11/t11_ssprint_rc.h
-# errores de los encargos al equipo (agy)
-.agy-tasks/*.err
+# equipo (agy): se sube solo la plantilla; encargos, respuestas, _estado.md y .err se quedan en local
+.agy-tasks/*
+!.agy-tasks/_plantilla.md
